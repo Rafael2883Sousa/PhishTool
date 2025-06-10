@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+	"github.com/gophish/gophish/util"
 )
 
 type M365Tenant struct {
@@ -20,7 +21,7 @@ func GetAllTenants() ([]M365Tenant, error) {
 
 func SaveTenant(t *M365Tenant) error {
 	if t.ID == "" {
-		t.ID = GenerateSecureRandomString(12)
+		t.ID = util.GenerateSecureRandomString(12)
 	}
 	return db.Create(t).Error
 }

@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/csv"
 	"encoding/pem"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -192,4 +193,13 @@ func CheckAndCreateSSL(cp string, kp string) error {
 
 	log.Info("TLS Certificate Generation complete")
 	return nil
+}
+
+func GenerateSecureRandomString(length int) string {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err) // Falha catastrófica: não consegue gerar entropia
+	}
+	return hex.EncodeToString(bytes)[:length]
 }
