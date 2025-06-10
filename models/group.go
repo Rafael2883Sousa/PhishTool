@@ -14,7 +14,7 @@ import (
 // Group contains the fields needed for a user -> group mapping
 // Groups contain 1..* Targets
 type Group struct {
-	Id           int64     `json:"id"`
+	Id           int64     `json:"id" gorm:"primary_key`
 	UserId       int64     `json:"-"`
 	Name         string    `json:"name"`
 	ModifiedDate time.Time `json:"modified_date"`
@@ -310,6 +310,15 @@ func DeleteGroup(g *Group) error {
 		return err
 	}
 	return err
+}
+
+func ImportGroupsToGoPhish(groups []Group) error {
+	for _, g := range groups {
+		if err := db.Create(&g).Error; err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func insertTargetIntoGroup(tx *gorm.DB, t Target, gid int64) error {
