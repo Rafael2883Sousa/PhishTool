@@ -9,7 +9,9 @@ import (
 	"net/url"
 	"strings"
 	"time"
+	"encoding/json"
 
+	"github.com/gophish/gophish/util/m365"
 	"github.com/NYTimes/gziphandler"
 	"github.com/gophish/gophish/auth"
 	"github.com/gophish/gophish/config"
