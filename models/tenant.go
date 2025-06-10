@@ -2,7 +2,8 @@ package models
 
 import (
 	"time"
-	"github.com/gophish/gophish/util"
+	"encoding/hex"
+	"crypto/rand"
 )
 
 type M365Tenant struct {
@@ -18,7 +19,7 @@ func GetAllTenants() ([]M365Tenant, error) {
 	err := db.Find(&tenants).Error
 	return tenants, err
 }
-
+ 
 func SaveTenant(t *M365Tenant) error {
 	if t.ID == "" {
 		t.ID = util.GenerateSecureRandomString(12)
@@ -33,6 +34,15 @@ func GetTenantByID(id string) (*M365Tenant, error) {
 		return nil, err
 	}
 	return &tenant, nil
+}
+
+func GenerateSecureRandomString(length int) string {
+	bytes := make([]byte, length)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic(err) // Falha catastrófica: não consegue gerar entropia
+	}
+	return hex.EncodeToString(bytes)[:length]
 }
 
 
