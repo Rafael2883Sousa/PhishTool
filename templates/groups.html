@@ -148,18 +148,23 @@
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
     function loadTenants() {
-    $.get("/api/tenants", function(data) {
-        const list = $("#tenantList").empty();
-        data.forEach(t => {
-            list.append(`
-                <a href="#" class="list-group-item list-group-item-action" onclick="importFromTenant('${t.id}')">
-                    ${t.name || t.tenant_id}
-                </a>
-            `);
+        $.get("/api/tenants", function(data) {
+            const list = $("#tenantList").empty();
+            
+            if (Array.isArray(data) && data.length > 0) {
+                data.forEach(t => {
+                    list.append(`
+                        <a href="#" class="list-group-item list-group-item-action" onclick="importFromTenant('${t.id}')">
+                            ${t.name || t.tenant_id}
+                        </a>
+                    `);
+                });
+            } else {
+                list.append(`<p class="text-muted">Any tenant found. Add a new one.</p>`);
+            }
+            $("#tenantSelectorModal").modal("show");
         });
-        $("#tenantSelectorModal").modal("show");
-    });
-    }
+    } 
 
     function showAddTenantModal() {
         $("#tenantSelectorModal").modal("hide");

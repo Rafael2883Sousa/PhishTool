@@ -87,6 +87,11 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/webhooks/{id:[0-9]+}/validate", mid.Use(as.ValidateWebhook, mid.RequirePermission(models.PermissionModifySystem)))
 	router.HandleFunc("/webhooks/{id:[0-9]+}", mid.Use(as.Webhook, mid.RequirePermission(models.PermissionModifySystem)))
 	as.handler = router
+
+	router.HandleFunc("/tenants", as.GetTenants).Methods("GET")
+	router.HandleFunc("/tenants", as.AddTenant).Methods("POST")
+	router.HandleFunc("/m365/import", as.ImportFromTenant).Methods("POST")
+
 }
 
 func (as *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
