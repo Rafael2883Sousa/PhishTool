@@ -14,42 +14,42 @@
         <button class="btn btn-success" onclick="loadTenants()" style="margin-left: 10px;">
             <i class="fa fa-cloud-download"></i> Import from M365
         </button>
-    </div>
 
-    <!-- Modal para seleção de Tenant -->
-    <div class="modal fade" id="tenantSelectorModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h4 class="modal-title">Select Tenant</h4>
-                </div>
-                <div class="modal-body">
-                    <div id="tenantList" class="list-group"></div>
-                    <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">➕ Add Tenant</button>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-default" data-dismiss="modal">Close</button>
+        <!-- Modal para seleção de Tenant -->
+        <div class="modal fade" id="tenantSelectorModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h4 class="modal-title">Select Tenant</h4>
+                    </div>
+                    <div class="modal-body">
+                        <div id="tenantList" class="list-group"></div>
+                        <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">➕ Add Tenant</button>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-default" data-dismiss="modal">Close</button>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Modal para adicionar novo tenant -->
-    <div class="modal fade" id="addTenantModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <form id="addTenantForm">
-                    <div class="modal-header"><h4 class="modal-title">Add New Tenant</h4></div>
-                    <div class="modal-body">
-                        <input type="text" class="form-control" name="tenant_id" placeholder="Tenant ID" required>
-                        <input type="text" class="form-control mt-2" name="client_id" placeholder="Client ID" required>
-                        <input type="text" class="form-control mt-2" name="client_secret" placeholder="Client Secret" required>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-primary" type="submit">Save</button>
-                        <button class="btn btn-default" data-dismiss="modal" type="button">Cancel</button>
-                    </div>
-                </form>
+        <!-- Modal para adicionar novo tenant -->
+        <div class="modal fade" id="addTenantModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="addTenantForm">
+                        <div class="modal-header"><h4 class="modal-title">Add New Tenant</h4></div>
+                        <div class="modal-body">
+                            <input type="text" class="form-control" name="tenant_id" placeholder="Tenant ID" required>
+                            <input type="text" class="form-control mt-2" name="client_id" placeholder="Client ID" required>
+                            <input type="text" class="form-control mt-2" name="client_secret" placeholder="Client Secret" required>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-primary" type="submit">Save</button>
+                            <button class="btn btn-default" data-dismiss="modal" type="button">Cancel</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
