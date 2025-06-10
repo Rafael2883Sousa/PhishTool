@@ -22,7 +22,7 @@ func GetAllTenants() ([]M365Tenant, error) {
  
 func SaveTenant(t *M365Tenant) error {
 	if t.ID == "" {
-		t.ID = util.GenerateSecureRandomString(12)
+		t.ID = GenerateSecureRandomString(12)
 	}
 	return db.Create(t).Error
 }
