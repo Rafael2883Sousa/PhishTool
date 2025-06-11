@@ -512,17 +512,28 @@ func GetTenants(w http.ResponseWriter, r *http.Request) {
 }
 
 func AddTenant(w http.ResponseWriter, r *http.Request) {
-	var t models.M365Tenant
-	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		http.Error(w, "Invalid input", 400)
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
+
+	t := models.M365Tenant{
+		TenantID:     r.FormValue("tenant_id"),
+		ClientID:     r.FormValue("client_id"),
+		ClientSecret: r.FormValue("client_secret"),
+	}
+	if t.ID == "" {
+		t.ID = util.GenerateSecureRandomString(12)
+	}
+
 	if err := models.SaveTenant(&t); err != nil {
-		http.Error(w, "Failed to save tenant", 500)
+		http.Error(w, "Failed to save tenant", http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
 }
+
 
 func ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 	var payload struct {

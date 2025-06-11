@@ -22,12 +22,10 @@
                     <div class="modal-header">
                         <h4 class="modal-title">Select Tenant</h4>
                     </div>
-                    <div class="modal-body">
-                        <div id="tenantList" class="list-group"></div>
-                        <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">➕ Add Tenant</button>
-                    </div>
                     <div class="modal-footer">
                         <button class="btn btn-default" data-dismiss="modal">Close</button>
+                        <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">
+                            <i class="fa fa-plus"></i> Add Tenant</button>
                     </div>
                 </div>
             </div>
@@ -168,7 +166,9 @@
 
     function showAddTenantModal() {
         $("#tenantSelectorModal").modal("hide");
-        $("#addTenantModal").modal("show");
+        setTimeout(() => {
+            $("#addTenantModal").modal("show");
+        }, 300); 
     }
 
     $("#addTenantForm").submit(function(e) {
