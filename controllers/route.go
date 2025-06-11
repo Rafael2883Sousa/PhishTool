@@ -140,6 +140,11 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/webhooks", mid.Use(as.Webhooks, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	router.HandleFunc("/impersonate", mid.Use(as.Impersonate, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 
+	router.HandleFunc("/api/tenants", mid.Use(GetTenants, mid.RequireLogin)).Methods("GET")
+	router.HandleFunc("/api/tenants", mid.Use(AddTenant, mid.RequireLogin)).Methods("POST")
+	router.HandleFunc("/api/m365/import", mid.Use(ImportFromTenant, mid.RequireLogin)).Methods("POST")
+
+
 	// Create the API routes
 	api := api.NewServer(
 		api.WithWorker(as.worker),
