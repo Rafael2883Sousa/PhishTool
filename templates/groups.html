@@ -151,62 +151,48 @@
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
-    $.ajaxSetup({
-        xhrFields: {
-            withCredentials: true
+function loadTenants() {
+    $('#tenantSelectorModal').modal('show');
+    console.log("📤 Abrindo modal de tenants..."); // DEBUG 1
+
+    fetch('/api/tenants', {
+        credentials: 'include'
+    })
+    .then(res => {
+        console.log("📥 Resposta da API /api/tenants recebida"); // DEBUG 2
+        return res.json();
+    })
+    .then(data => {
+        console.log("📦 Dados recebidos:", data); // DEBUG 3
+
+        const container = document.getElementById("tenantList");
+        container.innerHTML = "";
+
+        if (!Array.isArray(data)) {
+            container.innerHTML = "<div class='alert alert-danger'>Resposta inválida.</div>";
+            return;
         }
+
+        if (data.length === 0) {
+            container.innerHTML = "<div class='alert alert-warning'>No tenants available.</div>";
+            return;
+        }
+
+        data.forEach(t => {
+            const btn = document.createElement("button");
+            btn.className = "list-group-item list-group-item-action";
+            btn.innerText = (t.name || t.tenant_id) + " (" + t.tenant_id + ")";
+            btn.onclick = function () {
+                importFromTenant(t.id);
+            };
+            container.appendChild(btn);
+        });
+    })
+    .catch(err => {
+        console.error("❌ Erro ao buscar tenants:", err); // DEBUG 4
+        document.getElementById("tenantList").innerHTML =
+          "<div class='alert alert-danger'>Erro ao carregar tenants.</div>";
     });
-
-    function loadTenants() {
-        $("#tenantSelectorModal").modal("show");
-        $.get("/api/tenants", function(data) {
-            console.log("📦 Tenants recebidos:", data);
-            const list = $("#tenantList").empty();
-            
-            if (Array.isArray(data) && data.length > 0) {
-                data.forEach(t => {
-                    console.log("🔹 Iterando tenant:", t); // debug
-                    list.append(`
-                        <a href="#" class="list-group-item list-group-item-action" onclick="importFromTenant('${t.id}')">
-                            ${t.name || t.tenant_id}
-                        </a>
-                    `);
-                });
-            } else {
-                list.append(`<p class="text-muted">Any tenant found. Add a new one.</p>`);
-            }
-            
-        }).fail(function(xhr) {
-            console.error("❌ Falha ao obter tenants:", xhr.responseText);
-        });
-    } 
-
-    function showAddTenantModal() {
-        /*$("#tenantSelectorModal").modal("hide");*/
-        setTimeout(() => {
-            $("#addTenantModal").modal("show");
-        }, 300); 
-    }
-
-    $("#addTenantForm").submit(function(e) {
-        e.preventDefault();
-        const formData = $(this).serialize();
-        $.post("/api/tenants", formData, function() {
-            $("#addTenantModal").modal("hide");
-            loadTenants();
-        }).fail(function(xhr) {
-            console.error("Erro ao adicionar tenant:", xhr.responseText);
-            alert("Erro ao adicionar tenant.");
-        });
-    });
-
-    function importFromTenant(id) {
-        $.post("/api/m365/import", { tenant_id: id }, function(response) {
-            alert("Import complete!");
-            location.reload(); 
-        }).fail(function() {
-            alert("Error during import.");
-        });
-    }
+}
 </script>
 {{end}}

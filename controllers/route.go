@@ -141,9 +141,9 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/webhooks", mid.Use(as.Webhooks, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 	router.HandleFunc("/impersonate", mid.Use(as.Impersonate, mid.RequirePermission(models.PermissionModifySystem), mid.RequireLogin))
 
-	router.HandleFunc("/api/tenants", mid.Use(GetTenants, mid.RequireLogin)).Methods("GET")
-	router.HandleFunc("/api/tenants", mid.Use(AddTenant, mid.RequireLogin)).Methods("POST")
-	router.HandleFunc("/api/m365/import", mid.Use(ImportFromTenant, mid.RequireLogin)).Methods("POST")
+	router.HandleFunc("/api/tenants", GetTenants).Methods("GET")
+	router.HandleFunc("/api/tenants", AddTenant).Methods("POST")
+	router.HandleFunc("/api/import", ImportFromTenant).Methods("POST")
 
 
 	// Create the API routes
@@ -523,6 +523,7 @@ func AddTenant(w http.ResponseWriter, r *http.Request) {
 	}
 
 	t := models.M365Tenant{
+		Name: 		  r.FormValue("tenant_name"),
 		TenantID:     r.FormValue("tenant_id"),
 		ClientID:     r.FormValue("client_id"),
 		ClientSecret: r.FormValue("client_secret"),
