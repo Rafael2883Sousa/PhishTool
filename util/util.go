@@ -8,6 +8,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/csv"
 	"encoding/pem"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -192,4 +193,14 @@ func CheckAndCreateSSL(cp string, kp string) error {
 
 	log.Info("TLS Certificate Generation complete")
 	return nil
+}
+
+func GenerateSecureRandomString(length int) string {
+	byteLen := (length + 1) / 2 // cada byte vira 2 chars hex
+	bytes := make([]byte, byteLen)
+	_, err := rand.Read(bytes)
+	if err != nil {
+		panic("Erro ao gerar bytes randômicos: " + err.Error())
+	}
+	return hex.EncodeToString(bytes)[:length]
 }

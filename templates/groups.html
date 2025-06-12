@@ -11,45 +11,9 @@
             data-target="#modal">
             <i class="fa fa-plus"></i> New Group</button>
 
-        <button class="btn btn-success" onclick="loadTenants()" style="margin-left: 10px;">
+        <button class="btn btn-success" onclick="loadTenants()" style="margin-left: 10px; background: #1abc9c;">
             <i class="fa fa-cloud-download"></i> Import from M365
         </button>
-
-        <!-- Modal para seleção de Tenant -->
-        <div class="modal fade" id="tenantSelectorModal" tabindex="-1" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h4 class="modal-title">Select Tenant</h4>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-default" data-dismiss="modal">Close</button>
-                        <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">
-                            <i class="fa fa-plus"></i> Add Tenant</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal para adicionar novo tenant -->
-        <div class="modal fade" id="addTenantModal" tabindex="-1" role="dialog">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form id="addTenantForm">
-                        <div class="modal-header"><h4 class="modal-title">Add New Tenant</h4></div>
-                        <div class="modal-body">
-                            <input type="text" class="form-control" name="tenant_id" placeholder="Tenant ID" required>
-                            <input type="text" class="form-control mt-2" name="client_id" placeholder="Client ID" required>
-                            <input type="text" class="form-control mt-2" name="client_secret" placeholder="Client Secret" required>
-                        </div>
-                        <div class="modal-footer">
-                            <button class="btn btn-primary" type="submit">Save</button>
-                            <button class="btn btn-default" data-dismiss="modal" type="button">Cancel</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
     </div>
 
     &nbsp;
@@ -76,6 +40,48 @@
         </table>
     </div>
 </div>
+
+<!-- Modal para seleção de Tenant -->
+<div class="modal fade" id="tenantSelectorModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Select Tenant</h4>
+            </div>
+           <div class="modal-body">
+                <!-- Aqui o JS insere os tenants -->
+                <div id="tenantList" class="list-group"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal">Close</button>
+                <button class="btn btn-primary mt-3" onclick="showAddTenantModal()">
+                    <i class="fa fa-plus"></i> Add Tenant</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para adicionar novo tenant -->
+<div class="modal fade" id="addTenantModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="addTenantForm">
+                <div class="modal-header"><h4 class="modal-title">Add New Tenant</h4></div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" name="tenant_name" placeholder="Tenant Name">
+                    <input type="text" class="form-control" name="tenant_id" placeholder="Tenant ID" required>
+                    <input type="text" class="form-control mt-2" name="client_id" placeholder="Client ID" required>
+                    <input type="text" class="form-control mt-2" name="client_secret" placeholder="Client Secret" required>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-primary" type="submit">Save</button>
+                    <button class="btn btn-default" data-dismiss="modal" type="button">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Modal -->
 <div class="modal fade" id="modal" tabindex="-1" role="dialog" aria-labelledby="modalLabel">
     <div class="modal-dialog" role="document">
@@ -145,12 +151,21 @@
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
+    $.ajaxSetup({
+        xhrFields: {
+            withCredentials: true
+        }
+    });
+
     function loadTenants() {
+        $("#tenantSelectorModal").modal("show");
         $.get("/api/tenants", function(data) {
+            console.log("📦 Tenants recebidos:", data);
             const list = $("#tenantList").empty();
             
             if (Array.isArray(data) && data.length > 0) {
                 data.forEach(t => {
+                    console.log("🔹 Iterando tenant:", t); // debug
                     list.append(`
                         <a href="#" class="list-group-item list-group-item-action" onclick="importFromTenant('${t.id}')">
                             ${t.name || t.tenant_id}
@@ -160,12 +175,14 @@
             } else {
                 list.append(`<p class="text-muted">Any tenant found. Add a new one.</p>`);
             }
-            $("#tenantSelectorModal").modal("show");
+            
+        }).fail(function(xhr) {
+            console.error("❌ Falha ao obter tenants:", xhr.responseText);
         });
     } 
 
     function showAddTenantModal() {
-        $("#tenantSelectorModal").modal("hide");
+        /*$("#tenantSelectorModal").modal("hide");*/
         setTimeout(() => {
             $("#addTenantModal").modal("show");
         }, 300); 
@@ -177,6 +194,9 @@
         $.post("/api/tenants", formData, function() {
             $("#addTenantModal").modal("hide");
             loadTenants();
+        }).fail(function(xhr) {
+            console.error("Erro ao adicionar tenant:", xhr.responseText);
+            alert("Erro ao adicionar tenant.");
         });
     });
 

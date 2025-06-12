@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 	"encoding/json"
+	"fmt"
 
 	"github.com/gophish/gophish/util/m365"
 	"github.com/NYTimes/gziphandler"
@@ -503,9 +504,13 @@ func Flash(w http.ResponseWriter, r *http.Request, t string, m string) {
 }
 
 func GetTenants(w http.ResponseWriter, r *http.Request) {
+	
+	fmt.Println("🔍 Buscando tenants do banco...")
 	tenants, err := models.GetAllTenants()
+	fmt.Printf("🔎 Tenants encontrados: %+v\n", tenants)
+	
 	if err != nil {
-		http.Error(w, "Error fetching tenants", 500)
+		http.Error(w, "Error fetching tenants", http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(tenants)

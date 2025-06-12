@@ -6,34 +6,43 @@ import (
 
 	"github.com/gophish/gophish/models"
 	"github.com/gophish/gophish/util/m365"
+	"github.com/gophish/gophish/util"
 )
 
-// GET /api/tenants
-func (as *Server) GetTenants(w http.ResponseWriter, r *http.Request) {
-	tenants, err := models.GetAllTenants()
-	if err != nil {
-		http.Error(w, "Error fetching tenants", http.StatusInternalServerError)
-		return
-	}
-	json.NewEncoder(w).Encode(tenants)
-}
+// func GetTenants(w http.ResponseWriter, r *http.Request) {
+// 	tenants, err := models.GetAllTenants()
+// 	if err != nil {
+// 		http.Error(w, "Error fetching tenants", 500)
+// 		return
+// 	}
+// 	json.NewEncoder(w).Encode(tenants)
+// }
 
-// POST /api/tenants
-func (as *Server) AddTenant(w http.ResponseWriter, r *http.Request) {
-	var t models.M365Tenant
-	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
-		http.Error(w, "Invalid input", http.StatusBadRequest)
+func AddTenant(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
 		return
 	}
+
+	t := models.M365Tenant{
+		TenantID:     r.FormValue("tenant_id"),
+		ClientID:     r.FormValue("client_id"),
+		ClientSecret: r.FormValue("client_secret"),
+	}
+	if t.ID == "" {
+		t.ID = util.GenerateSecureRandomString(12)
+	}
+
 	if err := models.SaveTenant(&t); err != nil {
 		http.Error(w, "Failed to save tenant", http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusCreated)
 }
 
-// POST /api/m365/import
-func (as *Server) ImportFromTenant(w http.ResponseWriter, r *http.Request) {
+
+func ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 	var payload struct {
 		TenantID string `json:"tenant_id"`
 	}
@@ -48,18 +57,21 @@ func (as *Server) ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 1. Obter token
 	token, err := m365.GetAccessToken(tenant.TenantID, tenant.ClientID, tenant.ClientSecret)
 	if err != nil {
 		http.Error(w, "Failed to get token: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// 2. Buscar grupos (ou usuários) no Microsoft Graph
 	groups, err := m365.FetchGroupsFromGraph(token)
 	if err != nil {
 		http.Error(w, "Failed to fetch groups: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// 3. Inserir os grupos no GoPhish
 	if err := models.ImportGroupsToGoPhish(groups); err != nil {
 		http.Error(w, "Failed to import groups: "+err.Error(), http.StatusInternalServerError)
 		return
@@ -68,3 +80,4 @@ func (as *Server) ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Import successful"))
 }
+
