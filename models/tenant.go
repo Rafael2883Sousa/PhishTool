@@ -8,7 +8,7 @@ import (
 
 type M365Tenant struct {
 	ID           string    `gorm:"primary_key" json:"id"`
-	Name         string    `json:"name"`
+	Name         string    `json:"tenant_name"`
 	TenantID     string    `json:"tenant_id"`
 	ClientID     string    `json:"client_id"`
 	ClientSecret string    `json:"client_secret"`

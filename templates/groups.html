@@ -68,7 +68,7 @@
             <form id="addTenantForm">
                 <div class="modal-header"><h4 class="modal-title">Add New Tenant</h4></div>
                 <div class="modal-body">
-                    <input type="text" class="form-control" name="tenant_name" placeholder="Tenant Name">
+                    <input type="text" class="form-control" name="tenant_name" placeholder="Tenant Name" required>
                     <input type="text" class="form-control" name="tenant_id" placeholder="Tenant ID" required>
                     <input type="text" class="form-control mt-2" name="client_id" placeholder="Client ID" required>
                     <input type="text" class="form-control mt-2" name="client_secret" placeholder="Client Secret" required>
@@ -151,19 +151,42 @@
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
+function importFromTenant(id) {
+    fetch("/api/import", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify({ tenant_id: id })
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Erro na importação");
+        return res.text();
+    })
+    .then(response => {
+        alert("Import complete!");
+        location.reload();
+    })
+    .catch(err => {
+        console.error("Erro ao importar:", err);
+        alert("Error during import.");
+    });
+}
+
 function loadTenants() {
     $('#tenantSelectorModal').modal('show');
-    console.log("📤 Abrindo modal de tenants..."); // DEBUG 1
+    console.log(" Abrindo modal de tenants..."); // DEBUG 1
 
     fetch('/api/tenants', {
         credentials: 'include'
     })
     .then(res => {
-        console.log("📥 Resposta da API /api/tenants recebida"); // DEBUG 2
+        console.log(" Resposta da API /api/tenants recebida"); // DEBUG 2
         return res.json();
     })
     .then(data => {
-        console.log("📦 Dados recebidos:", data); // DEBUG 3
+        console.log(" Dados recebidos:", data); // DEBUG 3
 
         const container = document.getElementById("tenantList");
         container.innerHTML = "";
@@ -189,10 +212,51 @@ function loadTenants() {
         });
     })
     .catch(err => {
-        console.error("❌ Erro ao buscar tenants:", err); // DEBUG 4
+        console.error(" Erro ao buscar tenants:", err); // DEBUG 4
         document.getElementById("tenantList").innerHTML =
           "<div class='alert alert-danger'>Erro ao carregar tenants.</div>";
     });
 }
+
+function showAddTenantModal() {
+    setTimeout(() => {
+        $("#addTenantModal").modal("show");
+    }, 300); 
+}
+
+document.getElementById("addTenantForm").addEventListener("submit", function (e) {
+    e.preventDefault(); 
+
+    const form = e.target;
+    const formData = {
+        tenant_name: form.tenant_name.value,
+        tenant_id: form.tenant_id.value,
+        client_id: form.client_id.value,
+        client_secret: form.client_secret.value
+    };
+
+    fetch("/api/tenants", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "include",
+        body: JSON.stringify(formData)
+    })
+    .then(res => {
+        if (!res.ok) throw new Error("Erro ao salvar tenant");
+        return res.text();
+    })
+    .then(() => {
+        $("#addTenantModal").modal("hide");
+        loadTenants(); // Recarrega a lista após adicionar
+    })
+    .catch(err => {
+        console.error("Erro ao salvar tenant:", err);
+        alert("Erro ao salvar tenant.");
+    });
+});
+
+
 </script>
 {{end}}
