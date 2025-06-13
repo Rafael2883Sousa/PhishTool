@@ -37,6 +37,10 @@ func GetTenantByID(id string) (*M365Tenant, error) {
 	return &tenant, nil
 }
 
+func DeleteTenantByID(id string) error {
+	return db.Where("id = ?", id).Delete(&M365Tenant{}).Error
+}
+
 func GenerateSecureRandomString(length int) string {
 	bytes := make([]byte, length)
 	_, err := rand.Read(bytes)

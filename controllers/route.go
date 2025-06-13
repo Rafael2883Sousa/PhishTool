@@ -144,6 +144,8 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/api/tenants", GetTenants).Methods("GET")
 	router.HandleFunc("/api/tenants", AddTenant).Methods("POST")
 	router.HandleFunc("/api/import", ImportFromTenant).Methods("POST")
+	router.HandleFunc("/api/tenants/{id}", DeleteTenant).Methods("DELETE")
+
 
 
 	// Create the API routes
@@ -602,6 +604,18 @@ func ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Import successful"))
+}
+
+func DeleteTenant(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	id := vars["id"]
+
+	err := models.DeleteTenantByID(id)
+	if err != nil {
+		http.Error(w, "Failed to delete tenant", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 
