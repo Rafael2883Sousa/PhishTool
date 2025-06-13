@@ -151,7 +151,9 @@
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
+
 function importFromTenant(id) {
+    document.getElementById("loading").style.display = "block";
     fetch("/api/import", {
         method: "POST",
         headers: {
@@ -171,6 +173,11 @@ function importFromTenant(id) {
     .catch(err => {
         console.error("Erro ao importar:", err);
         alert("Error during import.");
+    })
+    .finally(() => {
+        // Oculta o spinner antes de recarregar a página
+        document.getElementById("loading").style.display = "none";
+        location.reload();
     });
 }
 
@@ -211,7 +218,7 @@ function loadTenants() {
             const tenantInfo = document.createElement("span");
             tenantInfo.innerText = (t.tenant_name || "Sem nome") + " (" + t.tenant_id + ")";
             tenantInfo.style.cursor = "pointer";
-            tenantInfo.style.flexGrow = "1";  // força o span a ocupar o espaço antes do botão
+            tenantInfo.style.flexGrow = "1"; 
             tenantInfo.onclick = function () {
                 importFromTenant(t.id);
             };
@@ -234,11 +241,11 @@ function loadTenants() {
 
     })
     .catch(err => {
-        console.error(" Erro ao buscar tenants:", err); // DEBUG 4
+        console.error("Erro ao buscar tenants:", err); // DEBUG 4
         document.getElementById("tenantList").innerHTML =
           "<div class='alert alert-danger'>Erro ao carregar tenants.</div>";
     });
-    console.log("🔍 Dados brutos do tenant:", t);
+    console.log("Dados brutos do tenant:", t);
 }
 
 function showAddTenantModal() {
@@ -296,5 +303,21 @@ function deleteTenant(id) {
 }
 
 </script>
+<style>
+#loading {
+    position: fixed;
+    z-index: 9999;
+    top: 50%; left: 45%;
+    width: 100%;
+    height: 100%; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
 
+#loading i {
+    font-size: 10rem;
+    color: #333;
+}
+</style>
 {{end}}
