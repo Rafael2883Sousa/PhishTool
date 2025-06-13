@@ -204,7 +204,7 @@ function loadTenants() {
         data.forEach(t => {
             const btn = document.createElement("button");
             btn.className = "list-group-item list-group-item-action";
-            btn.innerText = (t.name || t.tenant_id) + " (" + t.tenant_id + ")";
+            btn.innerText = (t.tenant_name || "Sem nome") + " (" + t.tenant_id + ")";
             btn.onclick = function () {
                 importFromTenant(t.id);
             };
