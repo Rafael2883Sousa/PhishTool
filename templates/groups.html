@@ -132,6 +132,7 @@
                 <table id="targetsTable" class="table table-hover table-striped table-condensed">
                     <thead>
                         <tr>
+                            <th>Select</th>
                             <th>First Name</th>
                             <th>Last Name</th>
                             <th>Email</th>
@@ -152,8 +153,38 @@
 <script src="/js/dist/app/groups.min.js"></script>
 <script>
 
+// function importFromTenant(id) {
+//     document.getElementById("loading").style.display = "block";
+//     fetch("/api/import", {
+//         method: "POST",
+//         headers: {
+//             "Content-Type": "application/json"
+//         },
+//         credentials: "include",
+//         body: JSON.stringify({ tenant_id: id })
+//     })
+//     .then(res => {
+//         if (!res.ok) throw new Error("Erro na importação");
+//         return res.text();
+//     })
+//     .then(response => {
+//         alert("Import complete!");
+//         location.reload();
+//     })
+//     .catch(err => {
+//         console.error("Error during import:", err);
+//         alert("Error during import.");
+//     })
+//     .finally(() => {
+//         // Oculta o spinner antes de recarregar a página
+//         document.getElementById("loading").style.display = "none";
+//         location.reload();
+//     });
+// }
+
 function importFromTenant(id) {
     document.getElementById("loading").style.display = "block";
+
     fetch("/api/import", {
         method: "POST",
         headers: {
@@ -164,22 +195,24 @@ function importFromTenant(id) {
     })
     .then(res => {
         if (!res.ok) throw new Error("Erro na importação");
-        return res.text();
+        return res.json(); // espera um JSON com os utilizadores
     })
-    .then(response => {
-        alert("Import complete!");
-        location.reload();
+    .then(data => {
+        usersM365 = data; // guarda os utilizadores importados
+        console.log("✔️ Utilizadores importados:", usersM365);
+
+        alert("Importação concluída! Selecione os utilizadores abaixo.");
+        showM365UserSelector(); // esta função vamos criar no próximo passo
     })
     .catch(err => {
-        console.error("Erro ao importar:", err);
-        alert("Error during import.");
+        console.error("❌ Erro ao importar:", err);
+        alert("Erro durante importação.");
     })
     .finally(() => {
-        // Oculta o spinner antes de recarregar a página
         document.getElementById("loading").style.display = "none";
-        location.reload();
     });
 }
+
 
 function loadTenants() {
     $('#tenantSelectorModal').modal('show');

@@ -1,4 +1,5 @@
 var groups = []
+var usersM365 = []
 
 // Save attempts to POST or PUT to /groups/
 function save(id) {

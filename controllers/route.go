@@ -582,28 +582,22 @@ func ImportFromTenant(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 1. Obter token
+	// Obter token
 	token, err := m365.GetAccessToken(tenant.TenantID, tenant.ClientID, tenant.ClientSecret)
 	if err != nil {
 		http.Error(w, "Failed to get token: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 2. Buscar grupos (ou usuários) no Microsoft Graph
-	groups, err := m365.FetchGroupsFromGraph(token)
+	users, err := m365.FetchUsersFromGraph(token)
 	if err != nil {
-		http.Error(w, "Failed to fetch groups: "+err.Error(), http.StatusInternalServerError)
+		http.Error(w, "Failed to fetch users: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// 3. Inserir os grupos no GoPhish
-	if err := models.ImportGroupsToGoPhish(groups); err != nil {
-		http.Error(w, "Failed to import groups: "+err.Error(), http.StatusInternalServerError)
-		return
-	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(users)
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Import successful"))
 }
 
 func DeleteTenant(w http.ResponseWriter, r *http.Request) {
