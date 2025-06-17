@@ -163,23 +163,60 @@
 let importedUsers = []; // Armazena os utilizadores M365
 
 function addSelectedM365ToTargets() {
+    console.log("📋 Users importados:", importedUsers);
+
     if (!importedUsers.length) {
         alert("Nenhum utilizador importado.");
         return;
     }
 
     const checkboxes = document.querySelectorAll("#tenantList input[type='checkbox']");
+    let count = 0;
+
     checkboxes.forEach(cb => {
         if (cb.checked) {
             const user = importedUsers[cb.dataset.index];
-
-            // Usa addTarget com 4 campos (a função já adiciona a célula extra e a de delete)
+            console.log(`☑️ Selecionado: ${user.first_name} ${user.last_name} <${user.email}>`);
             addTarget(user.first_name, user.last_name, user.email, user.position);
+            count++;
         }
     });
 
+    console.log(`✅ Total de utilizadores adicionados: ${count}`);
     targets.DataTable().draw();
     $("#tenantSelectorModal").modal("hide");
+}
+
+function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
+    var email = escapeHtml(emailInput).toLowerCase();
+
+    var newRow = [
+        "", 
+        escapeHtml(firstNameInput),
+        escapeHtml(lastNameInput),
+        email,
+        escapeHtml(positionInput),
+        '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
+    ];
+
+    console.log("➕ Adicionando linha à tabela:", newRow);
+
+    var targetsTable = targets.DataTable();
+    var existingRowIndex = targetsTable
+        .column(3, { order: "index" }) // Coluna de email
+        .data()
+        .indexOf(email);
+
+    if (existingRowIndex >= 0) {
+        console.log("✏️ Email já existe, atualizando:", email);
+        targetsTable
+            .row(existingRowIndex, { order: "index" })
+            .data(newRow);
+    } else {
+        console.log("🆕 Email novo, adicionando:", email);
+        targetsTable.row.add(newRow);
+    }
+    window.addTarget = addTarget;
 }
 
 function renderM365UserSelection(users) {
@@ -383,7 +420,7 @@ function showM365UserSelector() {
             <td>${user.last_name || ""}</td>
             <td>${user.email || ""}</td>
             <td>${user.position || ""}</td>
-            <td></td>
+            <td class="no-sort"></td>
         `;
 
         tbody.appendChild(row);

@@ -9,14 +9,6 @@ import (
 	"github.com/gophish/gophish/util"
 )
 
-// func GetTenants(w http.ResponseWriter, r *http.Request) {
-// 	tenants, err := models.GetAllTenants()
-// 	if err != nil {
-// 		http.Error(w, "Error fetching tenants", 500)
-// 		return
-// 	}
-// 	json.NewEncoder(w).Encode(tenants)
-// }
 
 func AddTenant(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {

@@ -75,7 +75,7 @@ function edit(id) {
                 targetRows = []
                 $.each(group.targets, function (i, record) {
                   targetRows.push([
-                      "",
+                      '<input type="checkbox" disabled>',
                       escapeHtml(record.first_name),
                       escapeHtml(record.last_name),
                       escapeHtml(record.email),
@@ -109,7 +109,6 @@ function edit(id) {
         done: function (e, data) {
             $.each(data.result, function (i, record) {
                 addTarget(
-                    record.checkbox,
                     record.first_name,
                     record.last_name,
                     record.email,
@@ -186,38 +185,6 @@ var deleteGroup = function (id) {
             location.reload()
         })
     })
-}
-
-function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
-    // Create new data row.
-    var email = escapeHtml(emailInput).toLowerCase();
-    var newRow = [
-        "",
-        escapeHtml(firstNameInput),
-        escapeHtml(lastNameInput),
-        email,
-        escapeHtml(positionInput),
-        '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
-    ];
-
-    // Check table to see if email already exists.
-    var targetsTable = targets.DataTable();
-    var existingRowIndex = targetsTable
-        .column(3, {
-            order: "index"
-        }) // Email column has index of 3
-        .data()
-        .indexOf(email);
-    // Update or add new row as necessary.
-    if (existingRowIndex >= 0) {
-        targetsTable
-            .row(existingRowIndex, {
-                order: "index"
-            })
-            .data(newRow);
-    } else {
-        targetsTable.row.add(newRow);
-    }
 }
 
 function load() {
