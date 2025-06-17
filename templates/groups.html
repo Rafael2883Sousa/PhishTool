@@ -191,7 +191,7 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
     var email = escapeHtml(emailInput).toLowerCase();
 
     var newRow = [
-        "", 
+        '<input type="checkbox" disabled>', 
         escapeHtml(firstNameInput),
         escapeHtml(lastNameInput),
         email,
@@ -199,7 +199,7 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
         '<span style="cursor:pointer;"><i class="fa fa-trash-o"></i></span>'
     ];
 
-    console.log("➕ Adicionando linha à tabela:", newRow);
+    console.log("Adicionando linha à tabela:", newRow);
 
     var targetsTable = targets.DataTable();
     var existingRowIndex = targetsTable
