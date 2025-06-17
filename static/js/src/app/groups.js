@@ -6,10 +6,10 @@ function save(id) {
     var targets = []
     $.each($("#targetsTable").DataTable().rows().data(), function (i, target) {
         targets.push({
-            first_name: unescapeHtml(target[0]),
-            last_name: unescapeHtml(target[1]),
-            email: unescapeHtml(target[2]),
-            position: unescapeHtml(target[3])
+            first_name: unescapeHtml(target[1]),
+            last_name: unescapeHtml(target[2]),
+            email: unescapeHtml(target[3]),
+            position: unescapeHtml(target[4])
         })
     })
     var group = {
@@ -75,6 +75,7 @@ function edit(id) {
                 targetRows = []
                 $.each(group.targets, function (i, record) {
                   targetRows.push([
+                      "",
                       escapeHtml(record.first_name),
                       escapeHtml(record.last_name),
                       escapeHtml(record.email),
@@ -108,6 +109,7 @@ function edit(id) {
         done: function (e, data) {
             $.each(data.result, function (i, record) {
                 addTarget(
+                    record.checkbox,
                     record.first_name,
                     record.last_name,
                     record.email,
@@ -190,6 +192,7 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
     // Create new data row.
     var email = escapeHtml(emailInput).toLowerCase();
     var newRow = [
+        "",
         escapeHtml(firstNameInput),
         escapeHtml(lastNameInput),
         email,
@@ -200,9 +203,9 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
     // Check table to see if email already exists.
     var targetsTable = targets.DataTable();
     var existingRowIndex = targetsTable
-        .column(2, {
+        .column(3, {
             order: "index"
-        }) // Email column has index of 2
+        }) // Email column has index of 3
         .data()
         .indexOf(email);
     // Update or add new row as necessary.

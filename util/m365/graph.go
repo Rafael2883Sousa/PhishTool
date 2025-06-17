@@ -84,7 +84,7 @@ func FetchUsersFromGraph(token string) ([]models.Target, error) {
 	var targets []models.Target
 	for _, user := range result.Value {
 		if user.Mail == "" {
-			continue // ignorar sem e-mail
+			continue 
 		}
 		targets = append(targets, models.Target{
 			BaseRecipient: models.BaseRecipient{
