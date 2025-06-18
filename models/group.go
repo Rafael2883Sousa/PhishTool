@@ -370,4 +370,4 @@ func GetTargets(gid int64) ([]Target, error) {
 	ts := []Target{}
 	err := db.Table("targets").Select("targets.id, targets.email, targets.first_name, targets.last_name, targets.position").Joins("left join group_targets gt ON targets.id = gt.target_id").Where("gt.group_id=?", gid).Scan(&ts).Error
 	return ts, err
-}
+} 

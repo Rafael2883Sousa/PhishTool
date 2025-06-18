@@ -138,7 +138,6 @@
                 <table id="targetsTable" class="table table-hover table-striped table-condensed">
                     <thead>
                         <tr>
-                            <th></th>
                             <th>First Name</th>
                             <th>Last Name</th>
                             <th>Email</th>
@@ -176,8 +175,9 @@ function addSelectedM365ToTargets() {
     checkboxes.forEach(cb => {
         if (cb.checked) {
             const user = importedUsers[cb.dataset.index];
+            console.log("Usuário selecionado:", user);
             console.log(`☑️ Selecionado: ${user.first_name} ${user.last_name} <${user.email}>`);
-            addTarget(user.first_name, user.last_name, user.email, user.position);
+            addTarget(user.last_name, user.email, user.position);
             count++;
         }
     });
@@ -191,7 +191,7 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
     var email = escapeHtml(emailInput).toLowerCase();
 
     var newRow = [
-        '<input type="checkbox" disabled>', 
+        "", 
         escapeHtml(firstNameInput),
         escapeHtml(lastNameInput),
         email,
@@ -418,7 +418,7 @@ function showM365UserSelector() {
             <td><input type="checkbox" class="target-checkbox" checked></td>
             <td>${user.first_name || ""}</td>
             <td>${user.last_name || ""}</td>
-            <td>${user.email || ""}</td>
+            <td>${user.email}</td>
             <td>${user.position || ""}</td>
             <td class="no-sort"></td>
         `;

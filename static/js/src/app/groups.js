@@ -5,6 +5,10 @@ var usersM365 = []
 function save(id) {
     var targets = []
     $.each($("#targetsTable").DataTable().rows().data(), function (i, target) {
+        if (!target[2]) {
+            console.warn("Target sem email detectado:", target);
+            return; // Pula esse target
+        }
         targets.push({
             first_name: unescapeHtml(target[1]),
             last_name: unescapeHtml(target[2]),
@@ -12,9 +16,22 @@ function save(id) {
             position: unescapeHtml(target[4])
         })
     })
+    console.table(targets);
+    if (targets.length === 0) {
+        alert("Por favor, adicione pelo menos um target."); // DEBUG
+        return; // ignora essa linha
+    }
+    if (!email || !email.includes("@")) {
+        console.warn("Email inválido no target:", target); // DEBUG
+        return; // ignora essa linha
+    }
     var group = {
         name: $("#name").val(),
         targets: targets
+    }
+    if (!group.name.trim()) {
+        alert("Por favor, insira um nome para o grupo."); // DEBUG
+        return;
     }
     // Submit the group
     if (id != -1) {
@@ -240,7 +257,7 @@ $(document).ready(function () {
         if (!targetForm.checkValidity()) {
             targetForm.reportValidity()
             return
-        }
+        } 
         addTarget(
             $("#firstName").val(),
             $("#lastName").val(),
