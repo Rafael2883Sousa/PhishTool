@@ -177,7 +177,7 @@ function addSelectedM365ToTargets() {
             const user = importedUsers[cb.dataset.index];
             console.log("Usuário selecionado:", user);
             console.log(`☑️ Selecionado: ${user.first_name} ${user.last_name} <${user.email}>`);
-            addTarget(user.last_name, user.email, user.position);
+            addTarget(user.first_name, user.last_name, user.email, user.position);
             count++;
         }
     });
@@ -191,7 +191,6 @@ function addTarget(firstNameInput, lastNameInput, emailInput, positionInput) {
     var email = escapeHtml(emailInput).toLowerCase();
 
     var newRow = [
-        "", 
         escapeHtml(firstNameInput),
         escapeHtml(lastNameInput),
         email,
