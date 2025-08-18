@@ -111,6 +111,12 @@
                             <input type="text" class="form-control" id="send_by_date" autocomplete="random-data"/> <!--Chrome ignores autocomplete="off".-->
                         </div>
                     </div>
+
+                    <div>
+                        <label><input type="checkbox" id="rand-enabled"> Randomizar Campanha</label>
+                        <button type="button" id="rand-config-btn" style="display:none">Configurar</button>
+                    </div>
+
                     <label class="control-label" for="profile">Sending Profile:</label>
                     <div class="input-group">
                         <select class="form-control" placeholder="Sending Profile" id="profile" />
@@ -128,6 +134,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-default" data-dismiss="modal" onclick="dismiss()">Close</button>
+
                 <button type="button" id="launchButton" class="btn btn-primary" onclick="launch()">
                     <i class="fa fa-rocket"></i> Launch Campaign</button>
             </div>
@@ -174,6 +181,17 @@
         </div>
     </div>
 </div>
+
+<div id="rand-modal" style="display:none">
+  <label>Delay mínimo (min): <input type="number" id="rand-min" value="1" min="1" max="60"></label>
+  <label>Delay máximo (min): <input type="number" id="rand-max" value="60" min="1" max="60"></label>
+  <label><input type="checkbox" id="rand-weekend"> Excluir fins de semana</label>
+  <label><input type="checkbox" id="rand-holiday" checked> Excluir feriados PT</label>
+  <label>Timezone: <input type="text" id="rand-tz" value="Europe/Lisbon" readonly></label>
+  <label>Taxa máx./hora: <input type="number" id="rand-rate" min="1" max="120" placeholder="opcional"></label>
+  <button type="button" id="rand-save">OK</button>
+</div>
+
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/campaigns.min.js"></script>
 {{end}}

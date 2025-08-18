@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
-	"strings"
+	"fmt"
 
 	ctx "github.com/gophish/gophish/context"
 	log "github.com/gophish/gophish/logger"
@@ -12,6 +12,64 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
+
+// helpers locais (Go 1.13)
+func clampInt(v, lo, hi int) int {
+	if v < lo { return lo }
+	if v > hi { return hi }
+	return v
+}
+
+type randomDTO struct {
+    RandomizeEnabled bool   `json:"randomize_enabled"`
+    RandomDelayMin   int    `json:"random_delay_min"`
+    RandomDelayMax   int    `json:"random_delay_max"`
+    ExcludeWeekends  bool   `json:"exclude_weekends"`
+    ExcludeHolidays  bool   `json:"exclude_holidays"`
+    TZ               string `json:"tz"`
+    RandomSeed       *int64 `json:"random_seed"`
+    SMTPMaxPerHour   *int   `json:"smtp_max_per_hour"`
+}
+
+func normalizeRandomFields(c *models.Campaign) {
+    if !c.RandomizeEnabled { return }
+    if c.TZ == "" { c.TZ = "Europe/Lisbon" }
+    c.RandomDelayMin = clampInt(c.RandomDelayMin, 1, 60)
+    if c.RandomDelayMax == 0 { c.RandomDelayMax = 60 }
+    if c.RandomDelayMax < c.RandomDelayMin { c.RandomDelayMax = c.RandomDelayMin }
+    if c.SMTPMaxPerHour != nil {
+        v := clampInt(*c.SMTPMaxPerHour, 1, 120)
+        c.SMTPMaxPerHour = &v
+    }
+}
+
+func validateRandomFields(c *models.Campaign) error {
+    if !c.RandomizeEnabled { return nil }
+    if c.RandomDelayMin < 1 || c.RandomDelayMin > 60 ||
+       c.RandomDelayMax < c.RandomDelayMin || c.RandomDelayMax > 60 {
+        return fmt.Errorf("invalid random delay range")
+    }
+    if c.SMTPMaxPerHour != nil && (*c.SMTPMaxPerHour < 1 || *c.SMTPMaxPerHour > 120) {
+        return fmt.Errorf("invalid smtp_max_per_hour")
+    }
+    return nil
+}
+
+func applyRandomFields(c *models.Campaign, d randomDTO) {
+	c.RandomizeEnabled = d.RandomizeEnabled
+	c.RandomDelayMin = clampInt(d.RandomDelayMin, 1, 60)
+	mx := d.RandomDelayMax
+	if mx < c.RandomDelayMin {
+		mx = c.RandomDelayMin
+	}
+	c.RandomDelayMax = clampInt(mx, 1, 60)
+	c.ExcludeWeekends = d.ExcludeWeekends
+	c.ExcludeHolidays = d.ExcludeHolidays
+	if d.TZ != "" { c.TZ = d.TZ } else { c.TZ = "Europe/Lisbon" }
+	c.RandomSeed = d.RandomSeed
+	c.SMTPMaxPerHour = d.SMTPMaxPerHour
+}
+
 
 // Campaigns returns a list of campaigns if requested via GET.
 // If requested via POST, APICampaigns creates a new campaign and returns a reference to it.
@@ -33,22 +91,11 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if strings.TrimSpace(c.DeliveryMode) == "" {
-        c.DeliveryMode = "immediate"
-		}
-
-		if c.DeliveryMode == "random" {
-			// random_config deve vir como string JSON (ex.: "{\"min_delay_minutes\":1,...}")
-			rc, err := c.GetRandomConfig()
-			if err != nil {
-				JSONResponse(w, models.Response{Success: false, Message: "random_config inválido: " + err.Error()}, http.StatusBadRequest)
-				return
-			}
-			if err := models.ValidateRandomConfig(rc); err != nil {
-				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
-				return
-			}
-		}
+		normalizeRandomFields(&c)
+		if err := validateRandomFields(&c); err != nil {
+			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			return
+    	}
 		
 		err = models.PostCampaign(&c, ctx.Get(r, "user_id").(int64))
 		if err != nil {

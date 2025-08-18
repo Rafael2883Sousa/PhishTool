@@ -33,7 +33,6 @@ func easterSunday(y int) time.Time { // algoritmo de Butcher
 }
 
 func movablePT(y int) map[time.Time]struct{} {
-    loc, _ := time.LoadLocation("Europe/Lisbon")
     m := map[time.Time]struct{}{}
     easter := easterSunday(y)
     goodFriday := easter.AddDate(0,0,-2)

@@ -1,5 +1,7 @@
 package models
 
+import "gorm.io/gorm"
+
 func GetCampaignTargetIDs(db *gorm.DB, campaignID int64) ([]int64, error) {
     // Ajusta consoante o teu schema de Campaign → Groups → Targets
     var ids []int64

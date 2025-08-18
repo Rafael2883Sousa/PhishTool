@@ -63,7 +63,7 @@ func (r *RandomRunner) RunCampaign(ctx context.Context, c *models.Campaign) erro
         }
 
         targetID := queue[idx]
-        ok := r.sendWithRetries(c, targetID)
+        _ = r.sendWithRetries(c, targetID)
         // avança sempre; keeps it simple
         idx++
         if err := r.db.Model(c).UpdateColumn("send_next_index", idx).Error; err != nil { return err }
