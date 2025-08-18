@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	ctx "github.com/gophish/gophish/context"
 	log "github.com/gophish/gophish/logger"
@@ -31,6 +32,24 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
+
+		if strings.TrimSpace(c.DeliveryMode) == "" {
+        c.DeliveryMode = "immediate"
+		}
+
+		if c.DeliveryMode == "random" {
+			// random_config deve vir como string JSON (ex.: "{\"min_delay_minutes\":1,...}")
+			rc, err := c.GetRandomConfig()
+			if err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: "random_config inválido: " + err.Error()}, http.StatusBadRequest)
+				return
+			}
+			if err := models.ValidateRandomConfig(rc); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+				return
+			}
+		}
+		
 		err = models.PostCampaign(&c, ctx.Get(r, "user_id").(int64))
 		if err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)

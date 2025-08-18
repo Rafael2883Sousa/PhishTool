@@ -31,6 +31,17 @@ type Campaign struct {
 	SMTPId        int64     `json:"-"`
 	SMTP          SMTP      `json:"smtp"`
 	URL           string    `json:"url"`
+
+	RandomizeEnabled bool    `json:"randomize_enabled" gorm:"not null;default:false"`
+    RandomDelayMin   int     `json:"random_delay_min" gorm:"not null;default:1"`
+    RandomDelayMax   int     `json:"random_delay_max" gorm:"not null;default:60"`
+    ExcludeWeekends  bool    `json:"exclude_weekends" gorm:"not null;default:false"`
+    ExcludeHolidays  bool    `json:"exclude_holidays" gorm:"not null;default:true"`
+    TZ               string  `json:"tz" gorm:"not null;default:'Europe/Lisbon'"`
+    RandomSeed       *int64  `json:"random_seed"`
+    SMTPMaxPerHour   *int    `json:"smtp_max_per_hour"`
+    SendQueueJSON    *string `json:"send_queue_json"`
+    SendNextIndex    int     `json:"send_next_index" gorm:"not null;default:0"`
 }
 
 // CampaignResults is a struct representing the results from a campaign
