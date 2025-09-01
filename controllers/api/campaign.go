@@ -52,7 +52,7 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 		if body.RandomConfig != nil {
 			cfg := *body.RandomConfig
 			cfg.CampaignID = c.Id
-			if err := models.UpsertRandomConfig(as.db, &cfg); err != nil {
+			if err := models.UpsertRandomConfig(models.GetDB(), &cfg); err != nil {
 				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 				return
 			}

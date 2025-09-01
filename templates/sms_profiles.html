@@ -1,0 +1,21 @@
+{{define "title"}}SMS Profiles{{end}}
+{{template "base" .}}
+{{define "body"}}
+<div class="container">
+  <h2>SMS Profiles</h2>
+  <form id="form-profile" class="form-inline" style="margin:10px 0">
+    <input class="form-control" name="name" placeholder="Name" required />
+    <input class="form-control" name="account_sid" placeholder="Twilio Account SID" required />
+    <input class="form-control" name="auth_token" placeholder="Twilio Auth Token" required type="password"/>
+    <input class="form-control" name="from_number" placeholder="+3519XXXXXXXX" required />
+    <input class="form-control" name="rate_limit_per_min" placeholder="60" type="number" min="1" />
+    <button type="submit" class="btn btn-primary">Add</button>
+  </form>
+
+  <table id="tbl-profiles" class="table table-striped">
+    <thead><tr><th>ID</th><th>Name</th><th>From</th><th>Rate/min</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
+<script src="/js/app/sms_profiles.js"></script>
+{{end}}

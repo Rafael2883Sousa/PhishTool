@@ -4,7 +4,6 @@ import (
 	"time"
 	"errors"
 	"math"
-	"context"
 
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/models"

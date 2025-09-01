@@ -8,7 +8,6 @@ import (
 	"time"
 
 	ctx "github.com/gophish/gophish/context"
-	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/models"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -16,7 +15,7 @@ import (
 
 type randomPreviewReq struct {
 	RandomConfig models.CampaignRandomConfig `json:"random_config"`
-	Groups       []struct{ Name string `json:"name"` } `json:"groups"`
+	Groups       []models.GroupName          `json:"groups"`
 }
 
 type randomPreviewResp struct {
@@ -44,9 +43,9 @@ func (as *Server) PreviewRandomPlan(w http.ResponseWriter, r *http.Request) {
 	now := time.Now().In(loc)
 	start := now
 	if cfg.StartTime != nil { start = cfg.StartTime.In(loc) }
-	targetIDs, _ := models.GetTargetIDsForGroups(as.db, ctx.Get(r, "user_id").(int64), req.Groups)
+	targetIDs, _ := models.GetTargetIDsForGroups(models.GetDB(), ctx.Get(r, "user_id").(int64), req.Groups)
 	// gerar N amostras
-	rows, etaEnd := generatePreviewRows(as.db, targetIDs, &cfg, loc, start, 200)
+	rows, etaEnd := generatePreviewRows(models.GetDB(), targetIDs, &cfg, loc, start, 200)
 	resp := randomPreviewResp{
 		CampaignID: 0,
 		Timezone: cfg.Timezone,
@@ -66,7 +65,7 @@ func (as *Server) GetRandomPlan(w http.ResponseWriter, r *http.Request) {
 	status := r.URL.Query().Get("status")
 	var stPtr *string
 	if status != "" { stPtr = &status }
-	pl, err := models.ListPlan(as.db, id, stPtr, 500, 0)
+	pl, err := models.ListPlan(models.GetDB(), id, stPtr, 500, 0)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			JSONResponse(w, models.Response{Success:false, Message:"Not found"}, http.StatusNotFound); return
@@ -80,7 +79,7 @@ func (as *Server) GetRandomPlan(w http.ResponseWriter, r *http.Request) {
 func (as *Server) GetRandomPlanCSV(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	id, _ := strconv.ParseInt(vars["id"], 10, 64)
-	pl, err := models.ListPlan(as.db, id, nil, 100000, 0)
+	pl, err := models.ListPlan(models.GetDB(), id, nil, 100000, 0)
 	if err != nil {
 		JSONResponse(w, models.Response{Success:false, Message:err.Error()}, http.StatusInternalServerError); return
 	}
