@@ -12,8 +12,13 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+type createCampaignReq struct {
+	models.Campaign
+	RandomConfig *models.CampaignRandomConfig `json:"random_config"`
+}
+
 // Campaigns returns a list of campaigns if requested via GET.
-// If requested via POST, APICampaigns creates a new campaign and returns a reference to it.
+// If requested via POST, creates a new campaign and returns a reference to it.
 func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "GET":
@@ -22,22 +27,37 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 			log.Error(err)
 		}
 		JSONResponse(w, cs, http.StatusOK)
-	//POST: Create a new campaign and return it as JSON
+
 	case r.Method == "POST":
-		c := models.Campaign{}
-		// Put the request into a campaign
-		err := json.NewDecoder(r.Body).Decode(&c)
-		if err != nil {
+		var body createCampaignReq
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
-		err = models.PostCampaign(&c, ctx.Get(r, "user_id").(int64))
-		if err != nil {
+
+		c := body.Campaign
+		if body.RandomConfig != nil {
+			// validar config antes de criar a campanha
+			if err := models.ValidateRandomConfig(body.RandomConfig); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+				return
+			}
+		}
+
+		if err := models.PostCampaign(&c, ctx.Get(r, "user_id").(int64)); err != nil {
 			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
 			return
 		}
-		// If the campaign is scheduled to launch immediately, send it to the worker.
-		// Otherwise, the worker will pick it up at the scheduled time
+
+		if body.RandomConfig != nil {
+			cfg := *body.RandomConfig
+			cfg.CampaignID = c.Id
+			if err := models.UpsertRandomConfig(as.db, &cfg); err != nil {
+				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+				return
+			}
+		}
+
 		if c.Status == models.CampaignInProgress {
 			go as.worker.LaunchCampaign(c)
 		}

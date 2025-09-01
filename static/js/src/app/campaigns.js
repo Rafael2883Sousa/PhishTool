@@ -53,6 +53,14 @@ function launch() {
                     send_by_date: send_by_date || null,
                     groups: groups,
                 }
+
+                if (window.collectRandomConfig) {
+                    var r = window.collectRandomConfig();
+                    if (r && r.random_config) {
+                        campaign.random_config = r.random_config;
+                    }
+                }
+
                 // Submit the campaign
                 api.campaigns.post(campaign)
                     .success(function (data) {

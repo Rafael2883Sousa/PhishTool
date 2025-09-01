@@ -124,6 +124,89 @@
                     </div>
                     <label class="control-label" for="users">Groups:</label>
                     <select class="form-control" id="users" multiple="multiple"></select>
+
+                    <hr>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="rand-enabled"> Randomize Campaigns
+                        </label>
+                        <button type="button" id="rand-config-btn" class="btn btn-default btn-xs" style="display:none">Configurar</button>
+                    </div>
+
+                    <!-- Randomization Modal -->
+                    <div class="modal" id="rand-modal" tabindex="-1" role="dialog" aria-labelledby="randLabel">
+                    <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                        <div class="modal-header">
+                            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+                            <h4 class="modal-title" id="randLabel">Config Randomization</h4>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                            <div class="col-xs-6">
+                                <label>Campaign start</label>
+                                <input type="text" class="form-control" id="rand-start" placeholder="MMMM Do YYYY, h:mm a">
+                            </div>
+                            <div class="col-xs-6">
+                                <label>End (soft)</label>
+                                <input type="text" class="form-control" id="rand-end" placeholder="opcional">
+                            </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                            <div class="col-xs-6">
+                                <label>Min Delay (min)</label>
+                                <input type="number" class="form-control" id="rand-min" value="1" min="1" max="60">
+                            </div>
+                            <div class="col-xs-6">
+                                <label>Max Delay (max)</label>
+                                <input type="number" class="form-control" id="rand-max" value="60" min="1" max="60">
+                            </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                            <div class="col-xs-6">
+                                <label><input type="checkbox" id="rand-weekend"> Exclude weekends</label>
+                            </div>
+                            <div class="col-xs-6">
+                                <label><input type="checkbox" id="rand-holiday" checked> Exclude holidays (PT)</label>
+                            </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                            <div class="col-xs-6">
+                                <label>Timezone</label>
+                                <input type="text" class="form-control" id="rand-tz" value="Europe/Lisbon" readonly>
+                            </div>
+                            <div class="col-xs-6">
+                                <label>Max rate/hour (opcional)</label>
+                                <input type="number" class="form-control" id="rand-rate" min="1" max="120" placeholder="ex.: 30">
+                            </div>
+                            </div>
+                            <br>
+                            <div class="row">
+                            <div class="col-xs-12">
+                                <label>Seed (opcional)</label>
+                                <input type="number" class="form-control" id="rand-seed" placeholder="ex.: 12345">
+                            </div>
+                            </div>
+                            <hr>
+                            <button type="button" class="btn btn-default" id="rand-preview">Preview plan</button>
+                            <div id="rand-preview-wrap" style="margin-top:10px; display:none;">
+                            <table id="rand-preview-table" class="table table-condensed">
+                                <thead><tr><th>Email</th><th>Scheduled for</th><th>Attempt</th></tr></thead>
+                                <tbody></tbody>
+                            </table>
+                            </div>
+                            <small>With exclusions active, sending stops on invalid days and resumes at 00:00 the next business day.</small>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-default" data-dismiss="modal" id="rand-cancel">Cancel</button>
+                            <button type="button" class="btn btn-primary" id="rand-save">OK</button>
+                        </div>
+                        </div>
+                    </div>
+                    </div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -176,4 +259,86 @@
 </div>
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/campaigns.min.js"></script>
+<script>
+(function(){
+  // não sobrescrevas jQuery
+  function $id(id){ return document.getElementById(id); }
+
+  // liga quando o modal principal abrir
+  $('#modal').on('shown.bs.modal', function(){
+    var cb  = $id('rand-enabled');
+    var $btn = $('#rand-config-btn');
+    if (!cb || $btn.length===0) return;
+
+    // move o modal de randomização para fora do modal principal
+    $('#rand-modal').appendTo('body');
+
+    // só mostrar/esconder o botão; não abrir o modal automaticamente
+    $btn.toggle(!!cb.checked);
+    cb.onchange = function(){ $btn.toggle(this.checked); };
+
+    // abrir o modal apenas ao clicar no botão
+    $btn.off('click.rand').on('click.rand', function(){
+      $('#rand-modal').modal({ backdrop:'static', keyboard:false, show:true });
+    });
+
+    // guardar config no OK
+    $('#rand-save').off('click.rand').on('click.rand', function(){
+      function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
+      function readDT(id){ var v=$id(id).value||''; return v? moment(v,"MMMM Do YYYY, h:mm a").utc().format():null; }
+
+      var min  = clamp($id('rand-min').value, 1, 60);
+      var max  = clamp($id('rand-max').value, min, 60);
+      var rate = $id('rand-rate').value? clamp($id('rand-rate').value,1,120): null;
+      var seed = $id('rand-seed').value? parseInt($id('rand-seed').value,10): null;
+
+      window.collectRandomConfig = function(){
+        if (!cb.checked) return null;
+        return { random_config: {
+          randomize_enabled: true,
+          delay_min_minutes: min,
+          delay_max_minutes: max,
+          exclude_weekends: $id('rand-weekend').checked,
+          exclude_holidays: $id('rand-holiday').checked,
+          timezone: $id('rand-tz').value || 'Europe/Lisbon',
+          smtp_max_per_hour: rate,
+          random_seed: seed,
+          start_time: readDT('rand-start'),
+          end_time_soft: readDT('rand-end')
+        }};
+      };
+      $('#rand-modal').modal('hide');
+    });
+
+    // pré-visualização
+    $('#rand-preview').off('click.rand').on('click.rand', function(){
+      if (typeof window.collectRandomConfig !== 'function') return;
+      var cfgWrap = window.collectRandomConfig(); if (!cfgWrap) return;
+      if (!cfgWrap.random_config.start_time) {
+        cfgWrap.random_config.start_time = moment($("#launch_date").val(),"MMMM Do YYYY, h:mm a").utc().format();
+      }
+      var groups = []; $("#users").select2("data").forEach(function(g){ groups.push({name:g.text}); });
+      $.ajax({
+        url: "/api/campaigns/preview/random",
+        method: "POST",
+        contentType: "application/json",
+        data: JSON.stringify({ random_config: cfgWrap.random_config, groups: groups }),
+        success: function(resp){
+          var $tb = $('#rand-preview-table tbody'); $tb.empty();
+          (resp.rows||[]).slice(0,200).forEach(function(r){
+            $tb.append("<tr><td>"+(r.email||r.target_id)+"</td><td>"+r.scheduled_send_at+"</td><td>"+r.attempt+"</td></tr>");
+          });
+          $('#rand-preview-wrap').show();
+        },
+        error: function(xhr){
+          alert("Preview falhou: " + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
+        }
+      });
+    });
+  });
+})();
+</script>
+
+
+
 {{end}}
