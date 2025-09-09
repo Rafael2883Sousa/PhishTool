@@ -10,6 +10,7 @@ import (
 	"github.com/gophish/gophish/models"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
+	worker "github.com/gophish/gophish/worker"
 )
 
 type createCampaignReq struct {
@@ -59,7 +60,13 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if c.Status == models.CampaignInProgress {
-			go as.worker.LaunchCampaign(c)
+			if body.RandomConfig != nil && body.RandomConfig.RandomizeEnabled {
+				// não chamar o worker padrão
+				// aciona o RandomScheduler para esta campanha
+				go worker.NewRandomKick(models.GetDB()).Kick(c.Id)
+			} else {
+				go as.worker.LaunchCampaign(c)
+			}
 		}
 		JSONResponse(w, c, http.StatusCreated)
 	}

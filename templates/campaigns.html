@@ -143,14 +143,14 @@
                         </div>
                         <div class="modal-body">
                             <div class="row">
-                            <div class="col-xs-6">
+                            <!-- <div class="col-xs-6">
                                 <label>Campaign start</label>
                                 <input type="text" class="form-control" id="rand-start" placeholder="MMMM Do YYYY, h:mm a">
                             </div>
                             <div class="col-xs-6">
                                 <label>End (soft)</label>
                                 <input type="text" class="form-control" id="rand-end" placeholder="opcional">
-                            </div>
+                            </div> -->
                             </div>
                             <br>
                             <div class="row">
@@ -284,57 +284,48 @@
 
     // guardar config no OK
     $('#rand-save').off('click.rand').on('click.rand', function(){
-      function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
-      function readDT(id){ var v=$id(id).value||''; return v? moment(v,"MMMM Do YYYY, h:mm a").utc().format():null; }
+        function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
+        var min  = clamp($('#rand-min').val(), 1, 60);
+        var max  = clamp($('#rand-max').val(), min, 60);
+        var rate = $('#rand-rate').val()? clamp($('#rand-rate').val(),1,120): null;
+        var seed = $('#rand-seed').val()? parseInt($('#rand-seed').val(),10): null;
 
-      var min  = clamp($id('rand-min').value, 1, 60);
-      var max  = clamp($id('rand-max').value, min, 60);
-      var rate = $id('rand-rate').value? clamp($id('rand-rate').value,1,120): null;
-      var seed = $id('rand-seed').value? parseInt($id('rand-seed').value,10): null;
-
-      window.collectRandomConfig = function(){
-        if (!cb.checked) return null;
-        return { random_config: {
-          randomize_enabled: true,
-          delay_min_minutes: min,
-          delay_max_minutes: max,
-          exclude_weekends: $id('rand-weekend').checked,
-          exclude_holidays: $id('rand-holiday').checked,
-          timezone: $id('rand-tz').value || 'Europe/Lisbon',
-          smtp_max_per_hour: rate,
-          random_seed: seed,
-          start_time: readDT('rand-start'),
-          end_time_soft: readDT('rand-end')
-        }};
-      };
-      $('#rand-modal').modal('hide');
+        window.collectRandomConfig = function(){
+            if (!$('#rand-enabled').prop('checked')) return null;
+            return { random_config: {
+            randomize_enabled: true,
+            delay_min_minutes: min,
+            delay_max_minutes: max,
+            exclude_weekends: $('#rand-weekend').prop('checked'),
+            exclude_holidays: $('#rand-holiday').prop('checked'),
+            timezone: $('#rand-tz').val() || 'Europe/Lisbon',
+            smtp_max_per_hour: rate,
+            random_seed: seed
+            }};
+        };
+        $('#rand-modal').modal('hide');
     });
 
-    // pré-visualização
+    // preview: usar o launch_date do formulário principal
     $('#rand-preview').off('click.rand').on('click.rand', function(){
-      if (typeof window.collectRandomConfig !== 'function') return;
-      var cfgWrap = window.collectRandomConfig(); if (!cfgWrap) return;
-      if (!cfgWrap.random_config.start_time) {
-        cfgWrap.random_config.start_time = moment($("#launch_date").val(),"MMMM Do YYYY, h:mm a").utc().format();
-      }
-      var groups = []; $("#users").select2("data").forEach(function(g){ groups.push({name:g.text}); });
-      $.ajax({
-        url: "/api/campaigns/preview/random",
-        method: "POST",
-        contentType: "application/json",
-        data: JSON.stringify({ random_config: cfgWrap.random_config, groups: groups }),
-        success: function(resp){
-          var $tb = $('#rand-preview-table tbody'); $tb.empty();
-          (resp.rows||[]).slice(0,200).forEach(function(r){
-            $tb.append("<tr><td>"+(r.email||r.target_id)+"</td><td>"+r.scheduled_send_at+"</td><td>"+r.attempt+"</td></tr>");
-          });
-          $('#rand-preview-wrap').show();
-        },
-        error: function(xhr){
-          alert("Preview falhou: " + ((xhr.responseJSON && xhr.responseJSON.message) || xhr.statusText));
-        }
-      });
+        if (typeof window.collectRandomConfig !== 'function') return;
+        var w = window.collectRandomConfig(); if (!w) return;
+        var cfg = w.random_config;
+        cfg.start_time = moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(); // só para preview
+        cfg.end_time_soft = null;
+
+        var groups = []; $("#users").select2("data").forEach(function(g){ groups.push({name:g.text}); });
+        $.ajax({
+            url: "/api/campaigns/preview/random",
+            method: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ random_config: cfg, groups: groups }),
+            success: function(resp){ /* render como já tens */ },
+            error: function(xhr){ alert(/* idem */); }
+        });
     });
+
+
   });
 })();
 </script>

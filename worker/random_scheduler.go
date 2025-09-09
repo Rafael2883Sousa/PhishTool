@@ -21,7 +21,7 @@ func NewRandomScheduler(db *gorm.DB) *RandomScheduler {
 
 func (s *RandomScheduler) Start() {
 	go s.run()
-}
+} 
 
 func (s *RandomScheduler) Stop() { close(s.quit) }
 
@@ -63,21 +63,31 @@ func (s *RandomScheduler) generateFullPlan(cfg *models.CampaignRandomConfig) err
 	ids, err := models.GetCampaignTargetIDs(s.db, cfg.CampaignID)
 	if err != nil { return err }
 	if len(ids) == 0 { return errors.New("no targets to schedule") }
+
 	loc, _ := time.LoadLocation(cfg.Timezone)
+
 	now := time.Now().In(loc)
 	start := now
-	if cfg.StartTime != nil { start = cfg.StartTime.In(loc) }
+	// preferir launch_date da campanha se for futuro
+	var camp models.Campaign
+	if err := s.db.Where("id = ?", cfg.CampaignID).First(&camp).Error; err == nil {
+		if !camp.LaunchDate.IsZero() {
+			ld := camp.LaunchDate.In(loc)
+			if ld.After(now) { start = ld }
+		}
+	}
+
 	seq := shuffle(ids, cfg.RandomSeed)
 	rows := make([]models.CampaignSendPlan, 0, len(seq))
 	t := roundMin(start)
 	for i, id := range seq {
 		t = nextAllowed(s.db, cfg, loc, t)
 		rows = append(rows, models.CampaignSendPlan{
-			CampaignID: cfg.CampaignID,
-			TargetID:   id,
+			CampaignID:      cfg.CampaignID,
+			TargetID:        id,
 			ScheduledSendAt: t,
-			Attempt: 0,
-			Status:  "scheduled",
+			Attempt:         0,
+			Status:          "scheduled",
 		})
 		d := effDelay(cfg, i)
 		t = t.Add(time.Duration(d) * time.Minute)
@@ -87,11 +97,17 @@ func (s *RandomScheduler) generateFullPlan(cfg *models.CampaignRandomConfig) err
 
 func (s *RandomScheduler) processDue(cfg *models.CampaignRandomConfig) error {
 	loc, _ := time.LoadLocation(cfg.Timezone)
-	now := time.Now().In(loc).Add(1 * time.Minute)
+	now := time.Now().In(loc)
 	for {
 		row, err := models.NextDuePlan(s.db, cfg.CampaignID, now)
 		if err != nil {
-			return nil // nothing due
+			var next models.CampaignSendPlan
+			if e := s.db.
+				Where("campaign_id = ? AND status = ? AND scheduled_send_at > ?", cfg.CampaignID, "scheduled", now).
+				Order("scheduled_send_at ASC").First(&next).Error; e == nil {
+				if d := next.ScheduledSendAt.Sub(now); d > 0 { time.Sleep(d) }
+			}
+			return nil
 		}
 		// se hoje é inválido, salta
 		if isInvalidDay(s.db, cfg, row.ScheduledSendAt.In(loc)) {
@@ -190,3 +206,14 @@ func GetCampaignTargetIDs(db *gorm.DB, campaignID int64) ([]int64, error) {
 
 // Placeholder de envio síncrono:
 // func SendCampaignEmail(db *gorm.DB, campaignID, targetID int64) error { ... }
+
+type RandomKick struct{ db *gorm.DB }
+func NewRandomKick(db *gorm.DB) *RandomKick { return &RandomKick{db: db} }
+func (k *RandomKick) Kick(campaignID int64) {
+    // gera plano se não existir e processa de imediato
+    cfg, err := models.GetRandomConfig(k.db, campaignID); if err != nil || !cfg.RandomizeEnabled { return }
+    var count int
+    _ = k.db.Model(&models.CampaignSendPlan{}).Where("campaign_id = ?", campaignID).Count(&count).Error
+    if count == 0 { _ = NewRandomScheduler(k.db).generateFullPlan(cfg) }
+    _ = NewRandomScheduler(k.db).processDue(cfg)
+}	

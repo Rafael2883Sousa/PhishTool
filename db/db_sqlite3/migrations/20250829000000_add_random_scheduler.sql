@@ -1,6 +1,4 @@
 -- +goose Up
-BEGIN;
-
 CREATE TABLE IF NOT EXISTS campaign_random_config (
   campaign_id        INTEGER PRIMARY KEY,
   randomize_enabled  BOOLEAN NOT NULL DEFAULT 0,
@@ -29,7 +27,7 @@ CREATE TABLE IF NOT EXISTS campaign_send_plan (
   updated_at         TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(campaign_id) REFERENCES campaigns(id) ON DELETE CASCADE
 );
-CREATE INDEX IF NOT EXISTS idx_plan_campaign_time ON campaign_send_plan(campaign_id, scheduled_send_at);
+CREATE INDEX IF NOT EXISTS idx_plan_campaign_time   ON campaign_send_plan(campaign_id, scheduled_send_at);
 CREATE INDEX IF NOT EXISTS idx_plan_campaign_target ON campaign_send_plan(campaign_id, target_id);
 
 CREATE TABLE IF NOT EXISTS holidays (
@@ -38,11 +36,7 @@ CREATE TABLE IF NOT EXISTS holidays (
   PRIMARY KEY (calendar, date)
 );
 
-COMMIT;
-
 -- +goose Down
-BEGIN;
 DROP TABLE IF EXISTS campaign_send_plan;
 DROP TABLE IF EXISTS campaign_random_config;
 DROP TABLE IF EXISTS holidays;
-COMMIT;
