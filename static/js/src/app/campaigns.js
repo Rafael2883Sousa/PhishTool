@@ -32,6 +32,10 @@ function launch() {
                         name: group.text
                     });
                 })
+                // se randomizar, forçar send_by_date vazio (evita cadência por segundos)
+                if (document.getElementById('rand-enabled') && $('#rand-enabled').prop('checked')) {
+                    $("#send_by_date").val('');
+                }
                 // Validate our fields
                 var send_by_date = $("#send_by_date").val()
                 if (send_by_date != "") {
@@ -53,12 +57,34 @@ function launch() {
                     send_by_date: send_by_date || null,
                     groups: groups,
                 }
+                function clamp(v, lo, hi) {
+                    v = parseInt(v, 10);
+                    if (isNaN(v)) v = lo;
+                    if (v < lo) v = lo;
+                    if (v > hi) v = hi;
+                    return v;
+                }
 
-                if (window.collectRandomConfig) {
-                    var r = window.collectRandomConfig();
-                    if (r && r.random_config) {
-                        campaign.random_config = r.random_config;
-                    }
+                var rc = window.collectRandomConfig && window.collectRandomConfig();
+                // fallback: se checkbox ativo mas "rc" vier nulo, lê diretamente do DOM
+                if (!rc && document.getElementById('rand-enabled') && $('#rand-enabled').prop('checked')) {
+                    var min  = clamp($('#rand-min').val(), 1, 60);
+                    var max  = clamp($('#rand-max').val(), min, 60);
+                    var rate = $('#rand-rate').val() ? clamp($('#rand-rate').val(), 1, 120) : null;
+                    var seed = $('#rand-seed').val() ? parseInt($('#rand-seed').val(), 10) : null;
+                    rc = { random_config: {
+                        randomize_enabled: true,
+                        delay_min_minutes: min,
+                        delay_max_minutes: max,
+                        exclude_weekends: $('#rand-weekend').prop('checked'),
+                        exclude_holidays: $('#rand-holiday').prop('checked'),
+                        timezone: $('#rand-tz').val() || 'Europe/Lisbon',
+                        smtp_max_per_hour: rate,
+                        random_seed: seed
+                    }};
+                }
+                if (rc && rc.random_config) {
+                campaign.random_config = rc.random_config;
                 }
 
                 // Submit the campaign

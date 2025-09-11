@@ -190,14 +190,7 @@
                                 <input type="number" class="form-control" id="rand-seed" placeholder="ex.: 12345">
                             </div>
                             </div>
-                            <hr>
-                            <button type="button" class="btn btn-default" id="rand-preview">Preview plan</button>
-                            <div id="rand-preview-wrap" style="margin-top:10px; display:none;">
-                            <table id="rand-preview-table" class="table table-condensed">
-                                <thead><tr><th>Email</th><th>Scheduled for</th><th>Attempt</th></tr></thead>
-                                <tbody></tbody>
-                            </table>
-                            </div>
+                            
                             <small>With exclusions active, sending stops on invalid days and resumes at 00:00 the next business day.</small>
                         </div>
                         <div class="modal-footer">
@@ -259,77 +252,160 @@
 </div>
 {{end}} {{define "scripts"}}
 <script src="/js/dist/app/campaigns.min.js"></script>
+
 <script>
+/* OVERRIDE DEFINITIVO DO LAUNCH + LOGS */
 (function(){
-  // não sobrescrevas jQuery
-  function $id(id){ return document.getElementById(id); }
+    console.log('[RND] override loaded');
 
-  // liga quando o modal principal abrir
-  $('#modal').on('shown.bs.modal', function(){
-    var cb  = $id('rand-enabled');
-    var $btn = $('#rand-config-btn');
-    if (!cb || $btn.length===0) return;
-
-    // move o modal de randomização para fora do modal principal
-    $('#rand-modal').appendTo('body');
-
-    // só mostrar/esconder o botão; não abrir o modal automaticamente
-    $btn.toggle(!!cb.checked);
-    cb.onchange = function(){ $btn.toggle(this.checked); };
-
-    // abrir o modal apenas ao clicar no botão
-    $btn.off('click.rand').on('click.rand', function(){
-      $('#rand-modal').modal({ backdrop:'static', keyboard:false, show:true });
-    });
-
-    // guardar config no OK
-    $('#rand-save').off('click.rand').on('click.rand', function(){
-        function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
+    // util
+    function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
+    function buildRandomConfig(){
+        if (!$('#rand-enabled').length || !$('#rand-enabled').prop('checked')) return null;
         var min  = clamp($('#rand-min').val(), 1, 60);
         var max  = clamp($('#rand-max').val(), min, 60);
         var rate = $('#rand-rate').val()? clamp($('#rand-rate').val(),1,120): null;
         var seed = $('#rand-seed').val()? parseInt($('#rand-seed').val(),10): null;
-
-        window.collectRandomConfig = function(){
-            if (!$('#rand-enabled').prop('checked')) return null;
-            return { random_config: {
-            randomize_enabled: true,
-            delay_min_minutes: min,
-            delay_max_minutes: max,
-            exclude_weekends: $('#rand-weekend').prop('checked'),
-            exclude_holidays: $('#rand-holiday').prop('checked'),
-            timezone: $('#rand-tz').val() || 'Europe/Lisbon',
-            smtp_max_per_hour: rate,
-            random_seed: seed
-            }};
+        return {
+        randomize_enabled: true,
+        delay_min_minutes: min,
+        delay_max_minutes: max,
+        exclude_weekends: $('#rand-weekend').prop('checked'),
+        exclude_holidays: $('#rand-holiday').prop('checked'),
+        timezone: $('#rand-tz').val() || 'Europe/Lisbon',
+        smtp_max_per_hour: rate,
+        random_seed: seed
         };
-        $('#rand-modal').modal('hide');
-    });
+    }
 
-    // preview: usar o launch_date do formulário principal
-    $('#rand-preview').off('click.rand').on('click.rand', function(){
-        if (typeof window.collectRandomConfig !== 'function') return;
-        var w = window.collectRandomConfig(); if (!w) return;
-        var cfg = w.random_config;
-        cfg.start_time = moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(); // só para preview
-        cfg.end_time_soft = null;
+    // override global para apanhar o onclick="launch()"
+    window.launch = function () {
+        console.log('[RND] launch override fired');
+        Swal.fire({
+        title: "Are you sure?",
+        text: "This will schedule the campaign to be launched.",
+        type: "question",
+        animation: false,
+        showCancelButton: true,
+        confirmButtonText: "Launch",
+        confirmButtonColor: "#428bca",
+        reverseButtons: true,
+        allowOutsideClick: false,
+        showLoaderOnConfirm: true,
+        preConfirm: function () {
+            return new Promise(function (resolve, reject) {
+            var groups = [];
+            $("#users").select2("data").forEach(function (g) { groups.push({ name: g.text }); });
 
-        var groups = []; $("#users").select2("data").forEach(function(g){ groups.push({name:g.text}); });
-        $.ajax({
-            url: "/api/campaigns/preview/random",
-            method: "POST",
-            contentType: "application/json",
-            data: JSON.stringify({ random_config: cfg, groups: groups }),
-            success: function(resp){ /* render como já tens */ },
-            error: function(xhr){ alert(/* idem */); }
+            // limpar send_by_date se randomizar
+            var randOn = $('#rand-enabled').length && $('#rand-enabled').prop('checked');
+            if (randOn) { $("#send_by_date").val(''); }
+
+            var send_by_date = $("#send_by_date").val();
+            if (send_by_date) { send_by_date = moment(send_by_date, "MMMM Do YYYY, h:mm a").utc().format(); }
+
+            var payload = {
+                name: $("#name").val(),
+                template: { name: $("#template").select2("data")[0].text },
+                url: $("#url").val(),
+                page: { name: $("#page").select2("data")[0].text },
+                smtp: { name: $("#profile").select2("data")[0].text },
+                launch_date: moment($("#launch_date").val(), "MMMM Do YYYY, h:mm a").utc().format(),
+                send_by_date: send_by_date || null,
+                groups: groups
+            };
+
+            var rc = buildRandomConfig();
+            if (rc) payload.random_config = rc;
+
+            console.log('[RND] POST /api/campaigns payload=', payload);
+
+            api.campaigns.post(payload)
+                .success(function (data) {
+                window.campaign = data;
+                resolve();
+                })
+                .error(function (data) {
+                $("#modal\\.flashes").empty().append(
+                    '<div style="text-align:center" class="alert alert-danger">' +
+                    '<i class="fa fa-exclamation-circle"></i> ' +
+                    (data.responseJSON && data.responseJSON.message || 'Error') +
+                    '</div>');
+                Swal.close();
+                });
+            });
+        }
+        }).then(function (result) {
+        if (result.value){
+            Swal.fire('Campaign Scheduled!','This campaign has been scheduled for launch!','success');
+        }
+        $('button:contains("OK")').on('click', function () {
+            window.location = "/campaigns/" + window.campaign.id.toString();
         });
+        });
+    };
+
+    // também remove qualquer handler anterior por segurança
+    $(function(){
+        $('#launchButton').prop('onclick', null).off('click').on('click', window.launch);
+    });
+})(); 
+</script>
+
+<script>
+(function(){
+  $('#modal').on('shown.bs.modal', function(){
+    var cb    = document.getElementById('rand-enabled');
+    var $btn  = $('#rand-config-btn');
+    var $send = $('#send_by_date');
+    if (!cb || $btn.length === 0) return;
+
+    // evita modal aninhado
+    $('#rand-modal').appendTo('body');
+
+    function lockSendBy(on){ $send.val(''); $send.prop('disabled', on); }
+
+    // estado inicial
+    $btn.toggle(cb.checked);
+    lockSendBy(cb.checked);
+
+    // só mostra/esconde botão e bloqueia "Send Emails By"
+    cb.onchange = function(){
+      $btn.toggle(this.checked);
+      lockSendBy(this.checked);
+    };
+
+    // abrir config só no clique
+    $btn.off('click.rand').on('click.rand', function(){
+      $('#rand-modal').modal({backdrop:'static', keyboard:false, show:true});
     });
 
+    // guardar config: construir sempre no momento da submissão
+    function clamp(v,lo,hi){ v=parseInt(v,10); if(isNaN(v)) v=lo; if(v<lo) v=lo; if(v>hi) v=hi; return v; }
+    window.collectRandomConfig = function(){
+    if (!$('#rand-enabled').prop('checked')) return null;
+    var min  = clamp($('#rand-min').val(), 1, 60);
+    var max  = clamp($('#rand-max').val(), min, 60);
+    var rate = $('#rand-rate').val()? clamp($('#rand-rate').val(),1,120): null;
+    var seed = $('#rand-seed').val()? parseInt($('#rand-seed').val(),10): null;
+    return { random_config: {
+        randomize_enabled: true,
+        delay_min_minutes: min,
+        delay_max_minutes: max,
+        exclude_weekends: $('#rand-weekend').prop('checked'),
+        exclude_holidays: $('#rand-holiday').prop('checked'),
+        timezone: $('#rand-tz').val() || 'Europe/Lisbon',
+        smtp_max_per_hour: rate,
+        random_seed: seed
+    }};
+    };
+    // só fecha o modal no OK
+    $('#rand-save').off('click.rand').on('click.rand', function(){
+    $('#rand-modal').modal('hide');
+    });
 
   });
 })();
 </script>
-
-
 
 {{end}}

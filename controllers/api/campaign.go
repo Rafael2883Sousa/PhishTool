@@ -4,13 +4,13 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"time"
 
 	ctx "github.com/gophish/gophish/context"
 	log "github.com/gophish/gophish/logger"
 	"github.com/gophish/gophish/models"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	worker "github.com/gophish/gophish/worker"
 )
 
 type createCampaignReq struct {
@@ -24,53 +24,53 @@ func (as *Server) Campaigns(w http.ResponseWriter, r *http.Request) {
 	switch {
 	case r.Method == "GET":
 		cs, err := models.GetCampaigns(ctx.Get(r, "user_id").(int64))
-		if err != nil {
-			log.Error(err)
-		}
+		if err != nil { log.Error(err) }
 		JSONResponse(w, cs, http.StatusOK)
 
 	case r.Method == "POST":
 		var body createCampaignReq
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: "Invalid JSON structure"}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success:false, Message:"Invalid JSON structure"}, http.StatusBadRequest)
 			return
 		}
-
 		c := body.Campaign
+
 		if body.RandomConfig != nil {
-			// validar config antes de criar a campanha
 			if err := models.ValidateRandomConfig(body.RandomConfig); err != nil {
-				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+				JSONResponse(w, models.Response{Success:false, Message:err.Error()}, http.StatusBadRequest)
 				return
 			}
 		}
+		if body.RandomConfig != nil && body.RandomConfig.RandomizeEnabled {
+			
+			c.SendByDate = time.Time{}
+			
+		}
+		//Deebug
+		log.Infof("POST /api/campaigns random_config: %#v", body.RandomConfig)
 
 		if err := models.PostCampaign(&c, ctx.Get(r, "user_id").(int64)); err != nil {
-			JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+			JSONResponse(w, models.Response{Success:false, Message:err.Error()}, http.StatusBadRequest)
 			return
 		}
 
-		if body.RandomConfig != nil {
+		if body.RandomConfig != nil && body.RandomConfig.RandomizeEnabled {
 			cfg := *body.RandomConfig
 			cfg.CampaignID = c.Id
 			if err := models.UpsertRandomConfig(models.GetDB(), &cfg); err != nil {
-				JSONResponse(w, models.Response{Success: false, Message: err.Error()}, http.StatusBadRequest)
+				JSONResponse(w, models.Response{Success:false, Message:err.Error()}, http.StatusBadRequest)
 				return
 			}
 		}
 
 		if c.Status == models.CampaignInProgress {
-			if body.RandomConfig != nil && body.RandomConfig.RandomizeEnabled {
-				// não chamar o worker padrão
-				// aciona o RandomScheduler para esta campanha
-				go worker.NewRandomKick(models.GetDB()).Kick(c.Id)
-			} else {
-				go as.worker.LaunchCampaign(c)
-			}
+			// Usar sempre o worker padrão depois de reprogramar os MailLogs
+			go as.worker.LaunchCampaign(c)
 		}
 		JSONResponse(w, c, http.StatusCreated)
 	}
 }
+
 
 // CampaignsSummary returns the summary for the current user's campaigns
 func (as *Server) CampaignsSummary(w http.ResponseWriter, r *http.Request) {

@@ -115,11 +115,39 @@ func (w *DefaultWorker) Start() {
 
 // LaunchCampaign starts a campaign
 func (w *DefaultWorker) LaunchCampaign(c models.Campaign) {
+	
 	ms, err := models.GetMailLogsByCampaign(c.Id)
 	if err != nil {
 		log.Error(err)
 		return
 	}
+
+    if cfg, err := models.GetRandomConfig(models.GetDB(), c.Id); err == nil && cfg != nil && cfg.RandomizeEnabled {
+        if err := models.RandomizeMailLogsSchedule(models.GetDB(), c.Id, cfg); err != nil {
+            log.Error(err)
+        }
+        // Recarregar os logs já com novos send_date
+        ms, err = models.GetMailLogsByCampaign(c.Id)
+        if err != nil { log.Error(err); return }
+    }
+	
+	// Deebbug
+	cfg, err := models.GetRandomConfig(models.GetDB(), c.Id)
+	if err == nil && cfg != nil && cfg.RandomizeEnabled {
+		log.Infof("RND start campaign=%d cfg=%+v", c.Id, *cfg)
+		if err := models.RandomizeMailLogsSchedule(models.GetDB(), c.Id, cfg); err != nil {
+			log.Errorf("RND schedule error campaign=%d err=%v", c.Id, err)
+		}
+		ms, err = models.GetMailLogsByCampaign(c.Id)
+		if err != nil { log.Errorf("RND reload error campaign=%d err=%v", c.Id, err); return }
+		if len(ms) > 0 {
+			log.Infof("RND after count=%d first=%s last=%s",
+				len(ms), ms[0].SendDate.UTC(), ms[len(ms)-1].SendDate.UTC())
+		} else {
+			log.Infof("RND after count=0")
+		}
+	}
+
 	models.LockMailLogs(ms, true)
 	// This is required since you cannot pass a slice of values
 	// that implements an interface as a slice of that interface.

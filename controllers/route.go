@@ -147,7 +147,6 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/api/tenants/{id}", DeleteTenant).Methods("DELETE")
 
 
-
 	// Create the API routes
 	api := api.NewServer(
 		api.WithWorker(as.worker),
