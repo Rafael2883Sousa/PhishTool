@@ -95,3 +95,4 @@ func (as *Server) Template(w http.ResponseWriter, r *http.Request) {
 		JSONResponse(w, t, http.StatusOK)
 	}
 }
+

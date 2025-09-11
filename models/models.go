@@ -194,6 +194,10 @@ func Setup(c *config.Config) error {
 
 	// Registro automático do modelo de tenants
 	db.AutoMigrate(&M365Tenant{})
+	
+	// if err := AutoMigrateSMS(); err != nil {
+	// 	log.Fatal(err)
+	// }
 
 	// Migrate up to the latest version
 	err = goose.RunMigrationsOnDb(migrateConf, migrateConf.MigrationsDir, latest, db.DB())

@@ -86,8 +86,14 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/webhooks/", mid.Use(as.Webhooks, mid.RequirePermission(models.PermissionModifySystem)))
 	router.HandleFunc("/webhooks/{id:[0-9]+}/validate", mid.Use(as.ValidateWebhook, mid.RequirePermission(models.PermissionModifySystem)))
 	router.HandleFunc("/webhooks/{id:[0-9]+}", mid.Use(as.Webhook, mid.RequirePermission(models.PermissionModifySystem)))
-	as.handler = router
 
+	// SMS Profiles (API)
+	router.HandleFunc("/sms/profiles/", as.GetSMSProfiles).Methods("GET")
+	router.HandleFunc("/sms/profiles/", as.CreateSMSProfile).Methods("POST")
+	router.HandleFunc("/sms/profiles/{id:[0-9]+}", as.UpdateSMSProfile).Methods("PUT")
+	router.HandleFunc("/sms/profiles/{id:[0-9]+}", as.DeleteSMSProfile).Methods("DELETE")
+	
+	as.handler = router
 }
 
 func (as *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
