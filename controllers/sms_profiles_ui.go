@@ -7,5 +7,8 @@ import (
 func (as *AdminServer) SMSProfilesPage(w http.ResponseWriter, r *http.Request) {
 	params := newTemplateParams(r)
 	params.Title = "SMS Profiles"
-	getTemplate(w, "sms_profiles").ExecuteTemplate(w, "base", params)
+	if err := getTemplate(w, "sms_profiles").ExecuteTemplate(w, "base", params); err != nil {
+		http.Error(w, "template error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }

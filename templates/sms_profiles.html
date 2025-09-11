@@ -1,8 +1,9 @@
 {{define "title"}}SMS Profiles{{end}}
-{{template "base" .}}
+
 {{define "body"}}
 <div class="container">
-  <h2>SMS Profiles</h2>
+  <h2>SMS Profiles <small style="color:#777">(SHORT_DOMAIN=localhost em desenvolvimento)</small></h2>
+
   <form id="form-profile" class="form-inline" style="margin:10px 0">
     <input class="form-control" name="name" placeholder="Name" required />
     <input class="form-control" name="account_sid" placeholder="Twilio Account SID" required />
@@ -17,5 +18,8 @@
     <tbody></tbody>
   </table>
 </div>
-<script src="/js/app/sms_profiles.js"></script>
+{{end}}
+
+{{define "scripts"}}
+<script src="/js/dist/app/sms_profiles.js"></script>
 {{end}}
