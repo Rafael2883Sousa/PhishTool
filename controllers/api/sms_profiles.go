@@ -23,7 +23,7 @@ type smsProfileReq struct {
 	RateLimitPerMin int    `json:"rate_limit_per_min"`
 }
 
-// GET /api/sms/profiles
+// GET /api/sms/profiles/
 func (as *Server) GetSMSProfiles(w http.ResponseWriter, r *http.Request) {
 	var items []models.SMSProfile
 	if err := models.DB().Order("id desc").Find(&items).Error; err != nil {
@@ -51,34 +51,31 @@ func (as *Server) GetSMSProfiles(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewEncoder(w).Encode(resp)
 }
 
-// POST /api/sms/profiles
+// POST /api/sms/profiles/
 func (as *Server) CreateSMSProfile(w http.ResponseWriter, r *http.Request) {
 	var req smsProfileReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-
-		enc, err := models.EncryptString(req.AuthToken)
-		if err != nil {
-			log.Printf("SMS profile encrypt error: %v", err) // verá "APP_ENCRYPTION_KEY not set" ou "must decode to 32 bytes"
-			http.Error(w, "encryption error", http.StatusInternalServerError)
-			return
-		}
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
 	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" || req.AccountSID == "" || req.AuthToken == "" || !e164.MatchString(req.FromNumber) {
+	if req.Name == "" || req.AccountSID == "" || !e164.MatchString(req.FromNumber) {
 		http.Error(w, "invalid fields", http.StatusBadRequest)
 		return
 	}
-	enc, err := models.EncryptString(req.AuthToken)
-	if err != nil {
-		http.Error(w, "encryption error", http.StatusInternalServerError)
-		return
+	enc := ""
+	if strings.TrimSpace(req.AuthToken) != "" {
+		var err error
+		enc, err = models.EncryptString(req.AuthToken)
+		if err != nil {
+			log.Printf("encrypt error: %v", err)
+			http.Error(w, "encryption error", http.StatusInternalServerError)
+			return
+		}
 	}
-	uidAny := ctx.Get(r, "user_id")
-	var uid uint
-	if v, ok := uidAny.(int64); ok && v >= 0 {
-		uid = uint(v)
+	var createdBy uint
+	if v, ok := ctx.Get(r, "user_id").(int64); ok && v >= 0 {
+		createdBy = uint(v)
 	}
 	item := models.SMSProfile{
 		Name:            req.Name,
@@ -86,14 +83,11 @@ func (as *Server) CreateSMSProfile(w http.ResponseWriter, r *http.Request) {
 		AccountSID:      req.AccountSID,
 		AuthTokenEnc:    enc,
 		FromNumber:      req.FromNumber,
-		RateLimitPerMin: req.RateLimitPerMin,
-		CreatedBy:       uid,
-	}
-	if item.RateLimitPerMin <= 0 {
-		item.RateLimitPerMin = 60
+		RateLimitPerMin: ifnz(req.RateLimitPerMin, 60),
+		CreatedBy:       createdBy,
 	}
 	if err := models.DB().Create(&item).Error; err != nil {
-		http.Error(w, "failed to create", http.StatusBadRequest)
+		http.Error(w, "db create failed", http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusCreated)
@@ -118,29 +112,30 @@ func (as *Server) UpdateSMSProfile(w http.ResponseWriter, r *http.Request) {
 	if s := strings.TrimSpace(req.Name); s != "" {
 		item.Name = s
 	}
-	if req.AccountSID != "" {
-		item.AccountSID = req.AccountSID
+	if s := strings.TrimSpace(req.AccountSID); s != "" {
+		item.AccountSID = s
 	}
-	if req.AuthToken != "" {
-		enc, err := models.EncryptString(req.AuthToken)
+	if s := strings.TrimSpace(req.AuthToken); s != "" {
+		enc, err := models.EncryptString(s)
 		if err != nil {
+			log.Printf("encrypt error: %v", err)
 			http.Error(w, "encryption error", http.StatusInternalServerError)
 			return
 		}
 		item.AuthTokenEnc = enc
 	}
-	if req.FromNumber != "" {
-		if !e164.MatchString(req.FromNumber) {
+	if s := strings.TrimSpace(req.FromNumber); s != "" {
+		if !e164.MatchString(s) {
 			http.Error(w, "invalid from_number", http.StatusBadRequest)
 			return
 		}
-		item.FromNumber = req.FromNumber
+		item.FromNumber = s
 	}
 	if req.RateLimitPerMin > 0 {
 		item.RateLimitPerMin = req.RateLimitPerMin
 	}
 	if err := models.DB().Save(&item).Error; err != nil {
-		http.Error(w, "failed to update", http.StatusBadRequest)
+		http.Error(w, "update failed", http.StatusBadRequest)
 		return
 	}
 	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
@@ -151,8 +146,10 @@ func (as *Server) DeleteSMSProfile(w http.ResponseWriter, r *http.Request) {
 	idStr := mux.Vars(r)["id"]
 	id, _ := strconv.Atoi(idStr)
 	if err := models.DB().Delete(&models.SMSProfile{}, id).Error; err != nil {
-		http.Error(w, "failed to delete", http.StatusBadRequest)
+		http.Error(w, "delete failed", http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func ifnz(v, d int) int { if v > 0 { return v }; return d }

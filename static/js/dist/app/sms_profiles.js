@@ -3,18 +3,28 @@
   function escapeHtml(s){return s.replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
   function authHeaders(){
     const h = {};
-    const u = window.user || {}; // evita ReferenceError se .User não vier do template
-    if (u.api_key) h.Authorization = "Bearer " + u.api_key;
+    const u = window.user || {};
+    if (u.api_key) h.Authorization = "Bearer " + u.api_key;   // header normal
     if (window.csrf_token) h["X-CSRF-Token"] = csrf_token;
     return h;
   }
-  function api(url,opts){
-    const o = Object.assign({method:"GET"}, opts||{});
-    o.url = url;
+  $.ajaxSetup({ headers: authHeaders() });
+
+  // anexa ?api_key=... como fallback (evita 401/“API Key not set” em dev)
+  function withApiKey(url){
+    const k = (window.user && window.user.api_key) ? window.user.api_key : "";
+    if (!k) return url;
+    return url + (url.indexOf("?") === -1 ? "?" : "&") + "api_key=" + encodeURIComponent(k);
+  }
+
+  function api(url, opts){
+    const o = Object.assign({ method:"GET", dataType:"json" }, opts||{});
+    o.url = withApiKey(url);
     o.headers = Object.assign({}, authHeaders(), o.headers||{});
     return $.ajax(o);
   }
-  function isE164(s){ return /^\+[1-9]\d{6,14}$/.test(s); } // cobre PT e CV
+
+  function isE164(s){ return /^\+[1-9]\d{6,14}$/.test(s); }
 
   function row(p){
     return `<tr data-id="${p.id}" data-account_sid="${escapeHtml(p.account_sid)}" data-name="${escapeHtml(p.name)}"
@@ -37,18 +47,14 @@
   }
 
   function list(){
-    api("/api/sms/profiles/", { dataType:"json" })
-      .done(render)
+    api("/api/sms/profiles/").done(render)
       .fail(xhr=>alert("List failed: "+xhr.status+" "+(xhr.responseText||"")));
   }
 
-  // Preparação do modal quando abre via data-toggle
   $("#modal-profile").on("show.bs.modal", function (ev){
     const $m = $(this);
     const $btn = $(ev.relatedTarget);
-    const isEdit = $btn && $btn.hasClass("edit"); // se abriu a partir do botão Edit (fallback)
-
-    // Por omissão: criar
+    const isEdit = $btn && $btn.hasClass("edit");
     $m.find(".modal-title").text("Add SMS Profile");
     $m.find("input[name=id]").val("");
     $m.find("input[name=name]").val("");
@@ -56,8 +62,6 @@
     $m.find("input[name=auth_token]").val("");
     $m.find("input[name=from_number]").val("");
     $m.find("input[name=rate_limit_per_min]").val("60");
-
-    // Se foi aberto a partir de uma linha com .edit, preencher para edição
     if (isEdit){
       const $tr = $btn.closest("tr");
       $m.find(".modal-title").text("Edit SMS Profile #"+$tr.data("id"));
@@ -70,37 +74,39 @@
     }
   });
 
-  // Abrir modal em modo edição (continua a funcionar sem data-target)
   $("#tbl-profiles").on("click","button.edit", function(e){
     e.preventDefault();
-    $("#modal-profile").modal("show");
+    $("#modal-profile").modal("show", this);
   });
 
-  // Submit modal (create/update)
   $("#form-profile").on("submit", function(e){
     e.preventDefault();
-    const id=this.id.value.trim(), name=this.name.value.trim(),
-          sid=this.account_sid.value.trim(), tok=this.auth_token.value.trim(),
-          from=this.from_number.value.trim(), rate=parseInt(this.rate_limit_per_min.value||"60",10);
+    const id=this.id.value.trim();
+    const payload={
+      name: this.name.value.trim(),
+      account_sid: this.account_sid.value.trim(),
+      from_number: this.from_number.value.trim(),
+      rate_limit_per_min: parseInt(this.rate_limit_per_min.value||"60",10)
+    };
+    const tok=this.auth_token.value; if(tok) payload.auth_token=tok;
 
-    if(!name || !sid || !isFinite(rate) || rate<1 || !isE164(from)){
-      alert("Check fields. 'From Number' must be E.164 (e.g., +351XXXXXXXXX or +238XXXXXXX)."); return;
+    if(!payload.name || !payload.account_sid || !isFinite(payload.rate_limit_per_min) || payload.rate_limit_per_min<1 || !isE164(payload.from_number)){
+      alert("Check fields. From must be E.164 (e.g., +3519XXXXXXXX or +2389XXXXXX)."); return;
     }
-    const payload={ name, account_sid:sid, from_number:from, rate_limit_per_min:rate };
-    if(tok) payload.auth_token=tok;
 
     if(id){
-      api("/api/sms/profiles/"+id, { method:"PUT", contentType:"application/json", data: JSON.stringify(payload)})
-        .done(()=>{ $("#modal-profile").modal("hide"); list(); })
+      api("/api/sms/profiles/"+id, {
+        method:"PUT", contentType:"application/json", data: JSON.stringify(payload)
+      }).done(()=>{ $("#modal-profile").modal("hide"); list(); })
         .fail(xhr=>alert("Update failed: "+xhr.status+" "+(xhr.responseText||"")));
-    }else{
-      api("/api/sms/profiles/", { method:"POST", contentType:"application/json", data: JSON.stringify(Object.assign({auth_token:tok}, payload))})
-        .done(()=>{ $("#modal-profile").modal("hide"); list(); })
+    } else {
+      api("/api/sms/profiles/", {
+        method:"POST", contentType:"application/json", data: JSON.stringify(payload)
+      }).done(()=>{ $("#modal-profile").modal("hide"); list(); })
         .fail(xhr=>alert("Create failed: "+xhr.status+" "+(xhr.responseText||"")));
     }
   });
 
-  // Delete
   $("#tbl-profiles").on("click","button.delete", function(){
     const id=$(this).closest("tr").data("id");
     if(!confirm("Delete profile #"+id+"?")) return;
@@ -109,7 +115,6 @@
       .fail(xhr=>alert("Delete failed: "+xhr.status+" "+(xhr.responseText||"")));
   });
 
-  // validação visual do E.164 enquanto escreve
   $(document).on("input", "input[name='from_number']", function(){
     $("#e164-help").css("color", isE164(this.value.trim()) ? "#3c763d" : "#a94442");
   });

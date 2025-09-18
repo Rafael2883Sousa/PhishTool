@@ -92,6 +92,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/sms/profiles/", as.CreateSMSProfile).Methods("POST")
 	router.HandleFunc("/sms/profiles/{id:[0-9]+}", as.UpdateSMSProfile).Methods("PUT")
 	router.HandleFunc("/sms/profiles/{id:[0-9]+}", as.DeleteSMSProfile).Methods("DELETE")
+
 	
 	as.handler = router
 }
