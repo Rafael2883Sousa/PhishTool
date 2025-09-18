@@ -6,6 +6,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"log"
 
 	ctx "github.com/gophish/gophish/context"
 	"github.com/gophish/gophish/models"
@@ -54,6 +55,13 @@ func (as *Server) GetSMSProfiles(w http.ResponseWriter, r *http.Request) {
 func (as *Server) CreateSMSProfile(w http.ResponseWriter, r *http.Request) {
 	var req smsProfileReq
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+
+		enc, err := models.EncryptString(req.AuthToken)
+		if err != nil {
+			log.Printf("SMS profile encrypt error: %v", err) // verá "APP_ENCRYPTION_KEY not set" ou "must decode to 32 bytes"
+			http.Error(w, "encryption error", http.StatusInternalServerError)
+			return
+		}
 		http.Error(w, "bad request", http.StatusBadRequest)
 		return
 	}
