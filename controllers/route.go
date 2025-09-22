@@ -147,7 +147,7 @@ func (as *AdminServer) registerRoutes() {
 	router.HandleFunc("/api/tenants/{id}", DeleteTenant).Methods("DELETE")
 
 	router.HandleFunc("/sms/profiles", mid.Use(as.SMSProfilesPage, mid.RequireLogin))
-
+	router.HandleFunc("/sms/templates", mid.Use(as.SMSTemplatesPage, mid.RequireLogin))
 
 	// Create the API routes
 	api := api.NewServer(

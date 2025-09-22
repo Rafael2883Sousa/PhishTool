@@ -1,3 +1,5 @@
+-- +goose Up
+
 DROP TABLE IF EXISTS sms_profiles;
 CREATE TABLE sms_profiles (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -11,3 +13,6 @@ CREATE TABLE sms_profiles (
   created_at        DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE UNIQUE INDEX IF NOT EXISTS ux_sms_profiles_name ON sms_profiles(name);
+
+-- +goose Down
+DROP TABLE IF EXISTS sms_profiles;
