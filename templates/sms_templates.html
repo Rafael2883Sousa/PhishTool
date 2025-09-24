@@ -1,56 +1,34 @@
-{{define "title"}}SMS Profiles{{end}}
+{{define "title"}}SMS Templates{{end}}
 {{define "body"}}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">SMS Profiles <small style="color:#777">(SHORT_DOMAIN=localhost em desenvolvimento)</small></h1>
-
+  <h1 class="page-header">SMS Templates <small style="color:#777">(SHORT_DOMAIN=localhost em desenvolvimento)</small></h1>
   <div class="row" style="margin-bottom:15px">
     <div class="col-sm-12">
-      <button id="btn-new" class="btn btn-primary" data-toggle="modal" data-target="#modal-profile">
-        <i class="fa fa-plus"></i> New Profile
-      </button>
+      <button id="btn-new" class="btn btn-primary" data-toggle="modal" data-target="#modal-tpl"><i class="fa fa-plus"></i> New Template</button>
     </div>
   </div>
-
+  <div id="empty-tpl" class="alert alert-info" style="display:none">No templates yet.</div>
   <div class="table-responsive">
-    <table id="tbl-profiles" class="table table-striped">
-      <thead>
-        <tr>
-          <th style="width:70px">ID</th>
-          <th>Name</th>
-          <th>From</th>
-          <th>Rate/min</th>
-          <th style="width:160px">Actions</th>
-        </tr>
-      </thead>
+    <table id="tbl-tpl" class="table table-striped">
+      <thead><tr><th style="width:70px">ID</th><th>Name</th><th>Preview</th><th style="width:160px">Actions</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
 </div>
 
-<!-- Modal add/edit -->
-<div id="modal-profile" class="modal fade" tabindex="-1">
+<div id="modal-tpl" class="modal fade" tabindex="-1">
   <div class="modal-dialog"><div class="modal-content">
-    <form id="form-profile" autocomplete="off">
+    <form id="form-tpl" autocomplete="off">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
-        <h4 class="modal-title">Add SMS Profile</h4>
+        <h4 class="modal-title">Add Template</h4>
       </div>
       <div class="modal-body">
         <input type="hidden" name="id"/>
-        <div class="form-group"><label>Name</label>
-          <input class="form-control" name="name" required maxlength="64">
-        </div>
-        <div class="form-group"><label>Twilio Account SID</label>
-          <input class="form-control" name="account_sid" required placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-        </div>
-        <div class="form-group"><label>Twilio Auth Token <small class="text-muted">(leave blank to keep)</small></label>
-          <input class="form-control" name="auth_token" placeholder="••••••••">
-        </div>
-        <div class="form-group"><label>From Number (E.164)</label>
-          <input class="form-control" name="from_number" placeholder="+3519XXXXXXX / +2389XXXXXX" required>
-        </div>
-        <div class="form-group"><label>Rate limit per minute</label>
-          <input class="form-control" name="rate_limit_per_min" type="number" min="1" value="60" required>
+        <div class="form-group"><label>Name</label><input class="form-control" name="name" required maxlength="64"/></div>
+        <div class="form-group"><label>Body</label>
+          <textarea class="form-control" name="body" rows="5" placeholder="Hello {first_name}, visit {link}" required></textarea>
+          <div id="stats" style="margin-top:6px;color:#666">Chars: 0 • Segments: 0 • Encoding: GSM-7</div>
         </div>
       </div>
       <div class="modal-footer">
@@ -62,5 +40,5 @@
 </div>
 {{end}}
 {{define "scripts"}}
-<script src="/js/dist/app/sms_profiles.js"></script>
+<script src="/js/dist/app/sms_templates.js"></script>
 {{end}}
