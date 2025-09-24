@@ -100,23 +100,7 @@ func (as *Server) registerRoutes() {
 	router.HandleFunc("/sms/templates/{id:[0-9]+}", as.UpdateSMSTemplate).Methods("PUT")
 	router.HandleFunc("/sms/templates/{id:[0-9]+}", as.DeleteSMSTemplate).Methods("DELETE")
 
-	// // Mostra o ficheiro SQLite efetivamente aberto e as colunas de sms_profiles e sms_tamplates
-    // type dbrow struct{ Seq int; Name, File string }
-    // var dbl []dbrow
-    // if err := models.DB().Raw("PRAGMA database_list;").Scan(&dbl).Error; err == nil && len(dbl) > 0 {
-    //     log.Printf("SQLite file in use: %s", dbl[0].File)
-    // } else if err != nil {
-    //     log.Printf("PRAGMA database_list error: %v", err)
-    // }
-    // var cols []struct{ Name string `gorm:"column:name"` }
-    // if err := models.DB().Raw("PRAGMA table_info(sms_profiles);").Scan(&cols).Error; err == nil {
-    //     names := make([]string, 0, len(cols))
-    //     for _, c := range cols { names = append(names, c.Name) }
-    //     log.Printf("sms_profiles columns: %v", names)
-    // } else {
-    //     log.Printf("PRAGMA table_info(sms_profiles) error: %v", err)
-    // }
-
+	// ==== DB diagnostics (path + columns) ====
 	type dbrow struct{ Seq int; Name, File string }
 	var dbl []dbrow
 	if err := models.DB().Raw("PRAGMA database_list;").Scan(&dbl).Error; err != nil {
@@ -165,7 +149,8 @@ func (as *Server) registerRoutes() {
 	} else {
 		log.Printf("PRAGMA table_info(sms_campaign_recipients) error: %v", dbres.Error)
 	}
-    // ===== FIM DEBUG DB =====
+	// ==== end diagnostics ====
+
 
 	as.handler = router
 }
