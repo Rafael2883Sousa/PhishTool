@@ -91,20 +91,8 @@
     const $tb=$("#tbl-tpl tbody").empty(); 
     if(!items||!items.length){
       $("#empty-tpl").show("#emptyMessage");
-      if ($.fn.dataTable && !$.fn.dataTable.isDataTable('#tbl-tpl')) {
-        $('#tbl-tpl').DataTable({
-          destroy: true,
-          pageLength: 10,
-          lengthMenu: [10, 25, 50, 100],
-          columnDefs: [{ orderable: false, targets: 3 }], // Actions
-          language: {
-            lengthMenu: "Show _MENU_ entries",
-            search: "Search:",
-            paginate: { previous: "Previous", next: "Next" }
-          }
-        });
-      }
-      return} 
+      return
+    }
     $("#empty-tpl").hide(); 
     items.forEach(x=>$tb.append(row(x)));  
     initTooltips();
@@ -132,26 +120,46 @@
   $("#btn-new").on("click",()=>{ const $m=$("#modal-tpl"); $m.find(".modal-title").text("Add Template"); $m.find("input[name=id]").val(""); $m.find("input[name=name]").val(""); $m.find("textarea[name=body]").val(""); updateStats(); });
 
   $("#tbl-tpl").on("click","button.edit",function(){ 
-    const $tr=$(this).closest("tr"), $m=$("#modal-tpl"); $m.modal("show"); $m.find(".modal-title").text("Edit Template #"+$tr.data("id")); $m.find("input[name=id]").val($tr.data("id")); $m.find("input[name=name]").val($tr.data("name")); $m.find("textarea[name=body]").val($tr.data("body")); updateStats(); });
+    const $tr=$(this).closest("tr"), $m=$("#modal-tpl"); $m.modal("show"); $m.find(".modal-title").text("Edit Template #"+$tr.data("id")); $m.find("input[name=id]").val($tr.data("id")); $m.find("input[name=name]").val($tr.data("name")); $m.find("textarea[name=body]").val($tr.data("body")); updateStats(); 
+  });
 
   $("#tbl-tpl").on("click","button.delete", function(){
-    const $tr  = $(this).closest("tr");
-    const id   = $tr.data("id");
-    const name = $tr.data("name");
+    const $tr   = $(this).closest("tr");
+    const id    = $tr.data("id");
+    const name  = $tr.data("name");
     if (!id) return;
 
-    if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+    if (typeof Swal === "undefined") {
+      if (!confirm(`Delete template "${name}"? This can't be undone!`)) return;
+      api(`/api/sms/templates/${id}`, { method:"DELETE" })
+        .done(()=>{ if (typeof successFlash==="function") successFlash("Template deleted!"); reloadTable(); })
+        .fail(x=>{ const m=(x.responseJSON&&x.responseJSON.message)||`Delete failed (${x.status})`; if (typeof modalError==="function") modalError(m); });
+      return;
+    }
 
-    api(`/api/sms/templates/${id}`, { method: "DELETE" })
-      .done(function(){
-        if (typeof successFlash === "function") successFlash("Template deleted!");
-        reloadTable(); // usa o helper que adicionaste
+    Swal.fire({
+      title: "Are you sure?",
+      text: "This will delete the template. This can't be undone!",
+      type: "warning",
+      animation: false,
+      showCancelButton: true,
+      confirmButtonText: "Delete " + escapeHtml(name),
+      confirmButtonColor: "#428bca",
+      reverseButtons: true,
+      allowOutsideClick: false,
+      preConfirm: () => new Promise((resolve, reject) => {
+        api(`/api/sms/templates/${id}`, { method:"DELETE" })
+          .done(()=>resolve())
+          .fail(x=>reject((x.responseJSON&&x.responseJSON.message)||"Delete failed"));
       })
-      .fail(function(x){
-        const msg = (x.responseJSON && x.responseJSON.message) || `Delete failed (${x.status})`;
-        if (typeof modalError === "function") modalError(msg); else alert(msg);
-      });
+    }).then((result)=>{
+      if (result.value){
+        Swal.fire('Template Deleted!','This template has been deleted!','success');
+      }
+      $('button:contains("OK")').on('click', ()=> reloadTable());
+    });
   });
+
 
   $("#form-tpl textarea[name='body']").on("input", updateStats);
   $("#form-tpl").on("submit",function(e){ e.preventDefault(); const id=this.id.value.trim(); const payload={name:this.name.value.trim(), body:this.body.value}; if(!payload.name||!payload.body){alert("Fill all fields");return}
