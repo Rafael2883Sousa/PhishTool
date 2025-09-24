@@ -1,7 +1,7 @@
 {{define "title"}}SMS Templates{{end}}
 {{define "body"}}
 <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-  <h1 class="page-header">SMS Templates <small style="color:#777">(SHORT_DOMAIN=localhost em desenvolvimento)</small></h1>
+  <h1 class="page-header">SMS Templates <small style="color:#777"></small></h1>
   <div class="row" style="margin-bottom:15px">
     <div class="col-sm-12">
       <button id="btn-new" class="btn btn-primary" data-toggle="modal" data-target="#modal-tpl"><i class="fa fa-plus"></i> New Template</button>
@@ -10,7 +10,7 @@
   <div id="empty-tpl" class="alert alert-info" style="display:none">No templates yet.</div>
   <div class="table-responsive">
     <table id="tbl-tpl" class="table table-striped">
-      <thead><tr><th style="width:70px">ID</th><th>Name</th><th>Preview</th><th style="width:160px">Actions</th></tr></thead>
+      <thead><tr><th style="width:70px">ID</th><th>Name</th><th>Preview</th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -42,3 +42,4 @@
 {{define "scripts"}}
 <script src="/js/dist/app/sms_templates.js"></script>
 {{end}}
+ 

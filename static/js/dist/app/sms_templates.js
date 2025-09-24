@@ -6,8 +6,29 @@
   function enc(text){ const gsm="@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞ ^{}\\[~]|€ !\"#¤%&'()*+,-./0123456789:;<=>?ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyzÄÖÑÜ§äöñüà"; for(let ch of text) if(gsm.indexOf(ch)<0) return "UCS-2"; return "GSM-7"; }
   function segs(text){ const e=enc(text), n=text.length; return e==="GSM-7"?{enc:e,chars:n,segments:n<=160?1:Math.ceil(n/153)}:{enc:e,chars:n,segments:n<=70?1:Math.ceil(n/67)}; }
   function updateStats(){ const t=$("textarea[name=body]").val(); const s=segs(t); $("#stats").text(`Chars: ${s.chars} • Segments: ${s.segments} • Encoding: ${s.enc}`); }
-  function row(t){ const p=t.body.length>80?t.body.slice(0,77)+"...":t.body; return `<tr data-id="${t.id}" data-name="${escapeHtml(t.name)}" data-body="${escapeHtml(t.body)}"><td>${t.id}</td><td>${escapeHtml(t.name)}</td><td>${escapeHtml(p)}</td><td><button class="btn btn-xs btn-default edit">Edit</button> <button class="btn btn-xs btn-danger delete">Delete</button></td></tr>`; }
-  function render(items){ const $tb=$("#tbl-tpl tbody").empty(); if(!items||!items.length){$("#empty-tpl").show();return} $("#empty-tpl").hide(); items.forEach(x=>$tb.append(row(x))); }
+  
+function row(t){
+  const p = t.body.length > 80 ? t.body.slice(0,77) + "..." : t.body;
+  return `<tr data-id="${t.id}" data-name="${escapeHtml(t.name)}" data-body="${escapeHtml(t.body)}">
+    <td>${t.id}</td>
+    <td>${escapeHtml(t.name)}</td>
+    <td>${escapeHtml(p)}</td>
+    <td>
+      <div class="pull-right">
+        <button class="btn btn-primary edit" data-toggle="tooltip" data-placement="left" title="Edit Template">
+          <i class="fa fa-pencil"></i>
+        </button>
+        <button class="btn btn-danger delete" data-toggle="tooltip" data-placement="left" title="Delete Template">
+          <i class="fa fa-trash-o"></i>
+        </button>
+      </div>
+    </td>
+  </tr>`;
+}
+
+
+  function render(items){ const $tb=$("#tbl-tpl tbody").empty(); if(!items||!items.length){$("#empty-tpl").show();return} $("#empty-tpl").hide(); items.forEach(x=>$tb.append(row(x))); $('[data-toggle="tooltip"]').tooltip();}
+  
   function list(){ api("/api/sms/templates/",{method:"GET",dataType:"json"}).done(render).fail(x=>alert("List failed: "+x.status+" "+(x.responseText||""))); }
   $("#btn-new").on("click",()=>{ const $m=$("#modal-tpl"); $m.find(".modal-title").text("Add Template"); $m.find("input[name=id]").val(""); $m.find("input[name=name]").val(""); $m.find("textarea[name=body]").val(""); updateStats(); });
   $("#tbl-tpl").on("click","button.edit",function(){ const $tr=$(this).closest("tr"), $m=$("#modal-tpl"); $m.modal("show"); $m.find(".modal-title").text("Edit Template #"+$tr.data("id")); $m.find("input[name=id]").val($tr.data("id")); $m.find("input[name=name]").val($tr.data("name")); $m.find("textarea[name=body]").val($tr.data("body")); updateStats(); });
